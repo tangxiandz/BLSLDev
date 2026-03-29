@@ -1,0 +1,70 @@
+[
+    {
+        "merged": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-merged_res-31:\\xml_data_extraction_rules.xml.flat",
+        "source": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-main-33:\\xml\\data_extraction_rules.xml"
+    },
+    {
+        "merged": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-merged_res-31:\\menu_bottom_nav_menu.xml.flat",
+        "source": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-main-33:\\menu\\bottom_nav_menu.xml"
+    },
+    {
+        "merged": "com.example.androidpda.app-merged_res-31:/drawable_bottom_nav_item_background.xml.flat",
+        "source": "com.example.androidpda.app-main-33:/drawable/bottom_nav_item_background.xml"
+    },
+    {
+        "merged": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-merged_res-31:\\layout_fragment_scan.xml.flat",
+        "source": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-main-33:\\layout\\fragment_scan.xml"
+    },
+    {
+        "merged": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-merged_res-31:\\layout_fragment_bucket.xml.flat",
+        "source": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-main-33:\\layout\\fragment_bucket.xml"
+    },
+    {
+        "merged": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-merged_res-31:\\layout_fragment_material.xml.flat",
+        "source": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-main-33:\\layout\\fragment_material.xml"
+    },
+    {
+        "merged": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-merged_res-31:\\drawable_ic_statistics.xml.flat",
+        "source": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-main-33:\\drawable\\ic_statistics.xml"
+    },
+    {
+        "merged": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-merged_res-31:\\drawable_ic_bucket.xml.flat",
+        "source": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-main-33:\\drawable\\ic_bucket.xml"
+    },
+    {
+        "merged": "com.example.androidpda.app-merged_res-31:/color_bottom_nav_item_text_color.xml.flat",
+        "source": "com.example.androidpda.app-main-33:/color/bottom_nav_item_text_color.xml"
+    },
+    {
+        "merged": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-merged_res-31:\\layout_activity_main.xml.flat",
+        "source": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-main-33:\\layout\\activity_main.xml"
+    },
+    {
+        "merged": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-merged_res-31:\\xml_backup_rules.xml.flat",
+        "source": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-main-33:\\xml\\backup_rules.xml"
+    },
+    {
+        "merged": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-merged_res-31:\\drawable_ic_scan.xml.flat",
+        "source": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-main-33:\\drawable\\ic_scan.xml"
+    },
+    {
+        "merged": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-merged_res-31:\\drawable_ic_material.xml.flat",
+        "source": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-main-33:\\drawable\\ic_material.xml"
+    },
+    {
+        "merged": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-merged_res-31:\\layout_fragment_feeding.xml.flat",
+        "source": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-main-33:\\layout\\fragment_feeding.xml"
+    },
+    {
+        "merged": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-merged_res-31:\\layout_fragment_mixing.xml.flat",
+        "source": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-main-33:\\layout\\fragment_mixing.xml"
+    },
+    {
+        "merged": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-merged_res-31:\\layout_fragment_statistics.xml.flat",
+        "source": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-main-33:\\layout\\fragment_statistics.xml"
+    },
+    {
+        "merged": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-merged_res-31:\\layout_item_material.xml.flat",
+        "source": "C:\\Users\\polyl\\.gradle\\daemon\\8.4\\com.example.androidpda.app-main-33:\\layout\\item_material.xml"
+    }
+]

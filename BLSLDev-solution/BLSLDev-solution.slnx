@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../BLSLDev-api/BLSLDev-api.csproj" />
+  <Project Path="BLSLDev-solution.csproj" />
+</Solution>

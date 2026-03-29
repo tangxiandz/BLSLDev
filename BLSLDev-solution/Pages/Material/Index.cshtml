@@ -1,0 +1,930 @@
+@page
+@{  
+    ViewData["Title"] = "物料管理";
+}
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h4>物料管理</h4>
+            </div>
+            <div class="col-md-6 d-flex justify-content-end">
+                <button class="btn btn-primary" onclick="openCreateModal()" style="margin-right: 1rem;">
+                    <i class="bi bi-plus"></i> 新增物料
+                </button>
+                <button class="btn btn-secondary" onclick="openImportModal()" style="background-color: #1E88E5; border-color: #1E88E5;">
+                    <i class="bi bi-file-excel"></i> Excel导入
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- 搜索框 -->
+        <div class="search-box mb-4">
+            <div class="row">
+                <div class="col-md-3">
+                    <input type="text" class="form-control" placeholder="半成品料号" id="SemiProductCode">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" placeholder="原料物料号" id="RawMaterialCode">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" placeholder="描述" id="Description">
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary btn-block" onclick="searchMaterials()" style="background-color: #1E88E5; border-color: #1E88E5;">
+                        <i class="bi bi-search"></i> 搜索
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 物料列表 -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>半成品料号</th>
+                        <th>半成品描述</th>
+                        <th>原料物料号</th>
+                        <th>原料描述</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="materialTableBody">
+                    @* 物料数据将通过JavaScript动态加载 *@
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        <div class="pagination-container mt-4">
+            <nav aria-label="Page navigation">
+                <ul class="pagination" id="pagination"></ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 物料数据
+        let materials = [];
+        let filteredMaterials = [];
+        let currentPage = 1;
+        const pageSize = 10;
+
+        // 初始化页面
+        $(document).ready(function() {
+            loadMaterials();
+        });
+
+        // 加载物料列表
+        function loadMaterials() {
+            $.ajax({
+                url: 'http://localhost:5018/api/Mixing/materials',
+                method: 'GET',
+                success: function(data) {
+                    console.log('API返回的数据:', data);
+                    materials = data;
+                    filteredMaterials = data;
+                    renderTable();
+                },
+                error: function(error) {
+                    console.error('Error loading materials:', error);
+                    Swal.fire({
+                            icon: 'error',
+                            title: '加载失败',
+                            text: '无法加载物料数据，请检查网络连接',
+                            confirmButtonColor: '#1E88E5'
+                        });
+                }
+            });
+        }
+
+        // 渲染表格
+        function renderTable() {
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const paginatedMaterials = filteredMaterials.slice(start, end);
+
+            // 渲染表格
+            const tableBody = $('#materialTableBody');
+            tableBody.empty();
+
+            if (paginatedMaterials.length === 0) {
+                tableBody.append('<tr><td colspan="6" class="text-center">暂无数据</td></tr>');
+                return;
+            }
+
+            paginatedMaterials.forEach((material, index) => {
+                const row = `
+                    <tr>
+                        <td>${start + index + 1}</td>
+                        <td>${material.semiProductCode}</td>
+                        <td>${material.semiProductDesc}</td>
+                        <td>${material.rawMaterialCode}</td>
+                        <td>${material.rawMaterialDesc}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary mr-2" onclick="openEditModal(${material.id})" title="编辑">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteMaterial(${material.id})" title="删除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.append(row);
+            });
+
+            // 渲染分页
+            renderPagination();
+        }
+
+        // 渲染分页
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredMaterials.length / pageSize);
+            const pagination = $('#pagination');
+            pagination.empty();
+
+            // 上一页
+            if (currentPage > 1) {
+                pagination.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(${currentPage - 1})">上一页</a></li>`);
+            } else {
+                pagination.append(`<li class="page-item disabled"><a class="page-link" href="#">上一页</a></li>`);
+            }
+
+            // 页码
+            if (totalPages <= 7) {
+                // 总页数小于等于7时，显示所有页码
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i === currentPage) {
+                        pagination.append(`<li class="page-item active"><a class="page-link" href="javascript:void(0)">${i}</a></li>`);
+                    } else {
+                        pagination.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(${i})"></i>${i}</a></li>`);
+                    }
+                }
+            } else {
+                // 总页数大于7时，显示当前页码附近的页码
+                // 显示第一页
+                pagination.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(1)">1</a></li>`);
+                
+                // 显示省略号
+                if (currentPage > 4) {
+                    pagination.append(`<li class="page-item disabled"><a class="page-link" href="#">...</a></li>`);
+                }
+                
+                // 显示当前页码附近的页码
+                const startPage = Math.max(2, currentPage - 2);
+                const endPage = Math.min(totalPages - 1, currentPage + 2);
+                
+                for (let i = startPage; i <= endPage; i++) {
+                    if (i === currentPage) {
+                        pagination.append(`<li class="page-item active"><a class="page-link" href="javascript:void(0)">${i}</a></li>`);
+                    } else {
+                        pagination.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(${i})"></i>${i}</a></li>`);
+                    }
+                }
+                
+                // 显示省略号
+                if (currentPage < totalPages - 3) {
+                    pagination.append(`<li class="page-item disabled"><a class="page-link" href="#">...</a></li>`);
+                }
+                
+                // 显示最后一页
+                pagination.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(${totalPages})"></i>${totalPages}</a></li>`);
+            }
+
+            // 下一页
+            if (currentPage < totalPages) {
+                pagination.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(${currentPage + 1})">下一页</a></li>`);
+            } else {
+                pagination.append(`<li class="page-item disabled"><a class="page-link" href="#">下一页</a></li>`);
+            }
+        }
+
+        // 切换页码
+        function changePage(page) {
+            currentPage = page;
+            renderTable();
+        }
+
+        // 搜索物料
+        function searchMaterials() {
+            const semiProductCode = $('#SemiProductCode').val().trim().toLowerCase();
+            const rawMaterialCode = $('#RawMaterialCode').val().trim().toLowerCase();
+            const description = $('#Description').val().trim().toLowerCase();
+
+            // 过滤物料
+            filteredMaterials = materials.filter(material => {
+                let match = true;
+                
+                if (semiProductCode && !material.semiProductCode.toLowerCase().includes(semiProductCode)) {
+                    match = false;
+                }
+                
+                if (rawMaterialCode && !material.rawMaterialCode.toLowerCase().includes(rawMaterialCode)) {
+                    match = false;
+                }
+                
+                if (description && !material.semiProductDesc.toLowerCase().includes(description) && 
+                    !material.rawMaterialDesc.toLowerCase().includes(description)) {
+                    match = false;
+                }
+                
+                return match;
+            });
+
+            currentPage = 1;
+            renderTable();
+        }
+
+        // 删除物料
+        function deleteMaterial(id) {
+            Swal.fire({
+                icon: 'warning',
+                title: '确认删除',
+                text: '确定要删除该物料吗？',
+                showCancelButton: true,
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                confirmButtonColor: '#1E88E5',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `http://localhost:5018/api/Mixing/material/${id}`,
+                        method: 'DELETE',
+                        success: function(response) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '删除成功',
+                                text: response.Message
+                            });
+                            loadMaterials();
+                        },
+                        error: function(error) {
+                            console.error('Error deleting material:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: '删除失败',
+                                text: '无法删除物料，请稍后重试'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // 打开新增物料弹窗
+        function openCreateModal() {
+            // 清空表单
+            $('#editMaterialId').val('');
+            $('#semiProductCode').val('');
+            $('#semiProductDesc').val('');
+            $('#rawMaterialCode').val('');
+            $('#rawMaterialDesc').val('');
+            $('#editModalLabel').text('新增物料');
+            const modal = new bootstrap.Modal(document.getElementById('editModal'));
+            modal.show();
+        }
+
+        // 打开编辑物料弹窗
+        function openEditModal(id) {
+            // 获取物料信息
+            const material = materials.find(m => m.id === id);
+            if (material) {
+                $('#editMaterialId').val(material.id);
+                $('#semiProductCode').val(material.semiProductCode);
+                $('#semiProductDesc').val(material.semiProductDesc);
+                $('#rawMaterialCode').val(material.rawMaterialCode);
+                $('#rawMaterialDesc').val(material.rawMaterialDesc);
+                $('#editModalLabel').text('编辑物料');
+                const modal = new bootstrap.Modal(document.getElementById('editModal'));
+                modal.show();
+            }
+        }
+
+        // 提交表单
+        function submitForm() {
+            console.log('表单提交开始');
+            
+            // 获取表单元素
+            const form = document.getElementById('editForm');
+            
+            // 表单验证
+            if (!form.checkValidity()) {
+                console.log('表单验证失败');
+                form.classList.add('was-validated');
+                return;
+            }
+            
+            // 重复验证
+            const semiProductCode = $('#semiProductCode').val().trim();
+            const rawMaterialCode = $('#rawMaterialCode').val().trim();
+            const materialId = $('#editMaterialId').val();
+            
+            // 检查是否存在相同的半成品料号和原料号的物料
+            const isDuplicate = materials.some(material => 
+                material.semiProductCode === semiProductCode && 
+                material.rawMaterialCode === rawMaterialCode && 
+                material.id != materialId
+            );
+            
+            if (isDuplicate) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: '重复数据',
+                    text: '已存在相同的半成品料号和原料号的物料',
+                    confirmButtonColor: '#1E88E5'
+                });
+                return;
+            }
+            
+            // 获取表单数据
+            const materialData = {
+                SemiProductCode: $('#semiProductCode').val().trim(),
+                SemiProductDesc: $('#semiProductDesc').val().trim(),
+                RawMaterialCode: $('#rawMaterialCode').val().trim(),
+                RawMaterialDesc: $('#rawMaterialDesc').val().trim(),
+                Quantity: '3kg' // 暂时使用固定值
+            };
+            
+            console.log('表单数据:', materialData);
+            console.log('是新增还是编辑:', materialId ? '编辑' : '新增');
+            
+            // 判断是新增还是编辑
+            if (materialId) {
+                // 编辑
+                console.log('发送编辑请求:', `http://localhost:5018/api/Mixing/material/${materialId}`);
+                $.ajax({
+                    url: `http://localhost:5018/api/Mixing/material/${materialId}`,
+                    method: 'PUT',
+                    contentType: 'application/json',
+                    data: JSON.stringify(materialData),
+                    success: function(response) {
+                        console.log('编辑物料成功:', response);
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
+                        if (modal) {
+                            modal.hide();
+                        }
+                        Swal.fire({
+                            icon: 'success',
+                            title: '更新成功',
+                            text: response.message,
+                            confirmButtonColor: '#1E88E5'
+                        });
+                        loadMaterials();
+                    },
+                    error: function(error) {
+                        console.error('编辑物料失败:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: '更新失败',
+                            text: '无法更新物料，请稍后重试\n' + (error.responseText || error.statusText),
+                            confirmButtonColor: '#1E88E5'
+                        });
+                    }
+                });
+            } else {
+                // 新增
+                console.log('发送新增请求:', 'http://localhost:5018/api/Mixing/material');
+                $.ajax({
+                    url: 'http://localhost:5018/api/Mixing/material',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(materialData),
+                    success: function(response) {
+                        console.log('添加物料成功:', response);
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
+                        if (modal) {
+                            modal.hide();
+                        }
+                        Swal.fire({
+                            icon: 'success',
+                            title: '添加成功',
+                            text: response.message,
+                            confirmButtonColor: '#1E88E5'
+                        });
+                        loadMaterials();
+                    },
+                    error: function(error) {
+                        console.error('添加物料失败:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: '添加失败',
+                            text: '无法添加物料，请稍后重试\n' + (error.responseText || error.statusText),
+                            confirmButtonColor: '#1E88E5'
+                        });
+                    }
+                });
+            }
+        }
+
+        // 打开导入弹窗
+        function openImportModal() {
+            // 重置导入模态框
+            resetImportModal();
+            const modal = new bootstrap.Modal(document.getElementById('importModal'));
+            modal.show();
+        }
+
+        // 初始化导入模态框
+        function initImportModal() {
+            console.log('Initializing import modal...');
+            
+            // 文件选择事件
+            console.log('Binding file change event...');
+            $(document).on('change', '#excelFileInput', function(e) {
+                console.log('File input changed:', e.target.files);
+                handleFileSelect(e.target.files);
+            });
+
+            // 拖拽上传初始化
+            var uploadArea = document.getElementById('excelUploadArea');
+            console.log('Upload area element:', uploadArea);
+
+            if (uploadArea) {
+                uploadArea.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    uploadArea.classList.add('dragover');
+                });
+
+                uploadArea.addEventListener('dragleave', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    uploadArea.classList.remove('dragover');
+                });
+
+                uploadArea.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    uploadArea.classList.remove('dragover');
+                    console.log('File dropped:', e.dataTransfer.files);
+                    handleFileSelect(e.dataTransfer.files);
+                });
+            }
+        }
+
+        // 处理文件选择
+        function handleFileSelect(files) {
+            if (files.length === 0) return;
+
+            var file = files[0];
+            console.log('Selected file:', file);
+            console.log('File type:', file.type);
+            console.log('File name:', file.name);
+
+            // 检查文件类型（根据文件名后缀）
+            var fileName = file.name.toLowerCase();
+            var validExtensions = ['.xlsx', '.xls', '.csv'];
+            var isValidExtension = false;
+            for (var i = 0; i < validExtensions.length; i++) {
+                if (fileName.endsWith(validExtensions[i])) {
+                    isValidExtension = true;
+                    break;
+                }
+            }
+            
+            if (!isValidExtension) {
+                Swal.fire({
+                    icon: 'error',
+                    title: '错误',
+                    text: '请选择Excel或CSV文件'
+                });
+                return;
+            }
+
+            // 检查文件大小（10MB）
+            if (file.size > 10 * 1024 * 1024) {
+                Swal.fire({
+                    icon: 'error',
+                    title: '错误',
+                    text: '文件大小不能超过10MB'
+                });
+                return;
+            }
+
+            // 显示文件信息
+            var fileSize = (file.size / 1024 / 1024).toFixed(2);
+            var fileInfo = '<div style="display: flex; align-items: center;"><div style="font-size: 48px; color: #28a745; margin-right: 15px;"><i class="bi bi-file-earmark-spreadsheet"></i></div><div><h5 style="margin: 0;">' + file.name + '</h5><p style="margin: 5px 0 0 0; color: #6c757d;">大小: ' + fileSize + ' MB | 类型: ' + file.type + '</p></div></div>';
+
+            $('#fileInfoContent').html(fileInfo);
+            $('#selectedFileInfo').show();
+            $('#btnStartImport').show();
+
+            // 保存文件对象
+            window.selectedFile = file;
+        }
+
+        // 重置导入模态框
+        function resetImportModal() {
+            currentStep = 1;
+            totalRows = 0;
+            importedRows = 0;
+            failedRows = 0;
+            errorLogs = [];
+
+            // 重置UI
+            $('#uploadStep').show().addClass('active');
+            $('#progressStep').hide().removeClass('active');
+            $('#resultStep').hide().removeClass('active');
+
+            $('#selectedFileInfo').hide();
+            $('#fileInfoContent').empty();
+            $('#excelFileInput').val('');
+
+            $('#btnStartImport').hide();
+            $('#btnPrevStep').hide();
+            $('#btnFinish').hide();
+            $('#btnCancel').show();
+
+            $('#importProgress').css('width', '0%').text('0%');
+            $('#progressText').text('准备导入...');
+            $('#detailInfo').text('');
+
+            $('#importResult').html('');
+            $('#errorLogContainer').hide();
+            $('#errorLogContent').empty();
+
+            window.selectedFile = null;
+        }
+
+        var currentStep = 1;
+        var totalRows = 0;
+        var importedRows = 0;
+        var failedRows = 0;
+        var errorLogs = [];
+
+        // 开始导入
+        function startImport() {
+            if (!window.selectedFile) {
+                Swal.fire({
+                    icon: 'error',
+                    title: '错误',
+                    text: '请先选择要导入的文件'
+                });
+                return;
+            }
+
+            // 切换到进度步骤
+            $('#uploadStep').hide().removeClass('active');
+            $('#progressStep').show().addClass('active');
+            currentStep = 2;
+
+            $('#btnStartImport').hide();
+            $('#btnCancel').hide();
+            $('#btnPrevStep').show();
+
+            // 开始上传和导入
+            uploadAndImportFile();
+        }
+
+        // 上一步
+        function prevStep() {
+            if (currentStep === 2) {
+                // 从进度步骤回到上传步骤
+                $('#progressStep').hide().removeClass('active');
+                $('#uploadStep').show().addClass('active');
+                currentStep = 1;
+
+                $('#btnPrevStep').hide();
+                $('#btnCancel').show();
+                $('#btnStartImport').show();
+            } else if (currentStep === 3) {
+                // 从结果步骤回到上传步骤
+                $('#resultStep').hide().removeClass('active');
+                $('#uploadStep').show().addClass('active');
+                currentStep = 1;
+
+                $('#btnPrevStep').hide();
+                $('#btnFinish').hide();
+                $('#btnCancel').show();
+                $('#btnStartImport').show();
+            }
+        }
+
+        // 上传并导入文件
+        function uploadAndImportFile() {
+            var formData = new FormData();
+            formData.append('file', window.selectedFile);
+
+            // 更新进度
+            $('#importProgress').css('width', '0%').text('0%');
+            $('#progressText').text('正在上传文件...');
+
+            $.ajax({
+                url: 'http://localhost:5018/api/Mixing/import/materials',
+                method: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                xhr: function() {
+                    var xhr = new XMLHttpRequest();
+                    xhr.upload.addEventListener('progress', function(e) {
+                        if (e.lengthComputable) {
+                            var percentComplete = Math.floor(e.loaded / e.total * 100);
+                            $('#importProgress').css('width', percentComplete + '%').text(percentComplete + '%');
+                            $('#progressText').text('文件上传中: ' + percentComplete + '%');
+                            $('#detailInfo').text('已上传 ' + (e.loaded/1024/1024).toFixed(2) + 'MB / ' + (e.total/1024/1024).toFixed(2) + 'MB');
+                        }
+                    }, false);
+                    return xhr;
+                },
+                success: function(response) {
+                    // 上传完成，进度条显示100%
+                    $('#importProgress').css('width', '100%').text('100%');
+                    $('#progressText').text('文件上传完成，正在处理导入结果...');
+
+                    console.log('API Response:', response);
+                    
+                    // 稍等片刻显示结果
+                    setTimeout(function() {
+                        showImportResult(response);
+                    }, 500);
+                },
+                error: function(xhr, status, error) {
+                    var errorMsg = '导入失败: ';
+                    if (xhr.responseJSON && xhr.responseJSON.Error) {
+                        errorMsg += xhr.responseJSON.Error;
+                    } else {
+                        errorMsg += error;
+                    }
+                    showImportError(errorMsg);
+                }
+            });
+        }
+
+        // 显示导入结果
+        function showImportResult(result) {
+            console.log('Showing import result:', result);
+            
+            // 切换到结果步骤
+            $('#progressStep').hide().removeClass('active');
+            $('#resultStep').show().addClass('active');
+            currentStep = 3;
+
+            $('#btnPrevStep').hide();
+            $('#btnFinish').show();
+            $('#btnCancel').hide();
+
+            // 构建结果数据，添加错误处理
+            var importedCount = 0;
+            var duplicateCount = 0;
+            var failedCount = 0;
+            var errorLogs = [];
+            
+            // 检查result是否有数据
+            if (result && typeof result === 'object') {
+                importedCount = parseInt(result.importedCount) || 0;
+                duplicateCount = parseInt(result.duplicateCount) || 0;
+                failedCount = parseInt(result.failedCount) || 0;
+                errorLogs = result.errorLogs || [];
+            }
+            
+            var totalRows = importedCount + duplicateCount + failedCount;
+            var successRows = importedCount + duplicateCount;
+
+            // 计算成功率
+            var successRate = totalRows > 0 ? Math.round((successRows / totalRows) * 100) : 0;
+
+            // 参考订单清单导入的设计风格
+            var resultHtml = '<div style="background-color: #f8f9fa; padding: 30px; border-radius: 8px; text-align: center;">' +
+                '<div style="font-size: 48px; color: #28a745; margin-bottom: 15px;">' +
+                    '<i class="bi bi-check-circle"></i>' +
+                '</div>' +
+                '<h3 style="color: #28a745; margin-bottom: 20px;">导入完成</h3>' +
+                '<div class="row" style="margin-top: 20px; margin-bottom: 20px;">' +
+                    '<div class="col-md-3">' +
+                        '<div class="stat-box" style="background-color: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">' +
+                            '<h4 style="font-size: 24px; margin: 0;">' + totalRows + '</h4>' +
+                            '<p style="margin: 5px 0 0 0; color: #6c757d;">总记录数</p>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                        '<div class="stat-box" style="background-color: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">' +
+                            '<h4 style="font-size: 24px; margin: 0; color: #28a745;">' + importedCount + '</h4>' +
+                            '<p style="margin: 5px 0 0 0; color: #6c757d;">新增记录</p>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                        '<div class="stat-box" style="background-color: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">' +
+                            '<h4 style="font-size: 24px; margin: 0; color: #ffc107;">' + duplicateCount + '</h4>' +
+                            '<p style="margin: 5px 0 0 0; color: #6c757d;">更新记录</p>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                        '<div class="stat-box" style="background-color: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">' +
+                            '<h4 style="font-size: 24px; margin: 0; color: #dc3545;">' + failedCount + '</h4>' +
+                            '<p style="margin: 5px 0 0 0; color: #6c757d;">失败记录</p>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="mt-4">' +
+                    '<p>成功率: <strong>' + successRate + '%</strong></p>' +
+                '</div>';
+
+            $('#importResult').html(resultHtml);
+            
+            // 显示错误日志
+            if (failedCount > 0 && errorLogs.length > 0) {
+                $('#errorLogContainer').show();
+                var errorLogHtml = '';
+                errorLogs.forEach(function(log, index) {
+                    errorLogHtml += '<div style="padding: 8px; border-bottom: 1px solid #eee;">' +
+                        '<strong>第' + (index + 1) + '行:</strong> ' + log +
+                    '</div>';
+                });
+                $('#errorLogContent').html(errorLogHtml);
+            } else {
+                $('#errorLogContainer').hide();
+            }
+        }
+
+        // 显示导入错误
+        function showImportError(message) {
+            $('#importResult').html('<div style="text-align: center; padding: 20px;"><div style="font-size: 60px; color: #dc3545; margin-bottom: 10px;"><i class="bi bi-x-circle"></i></div><h3 style="color: #dc3545;">导入失败</h3><p>' + message + '</p></div>');
+
+            $('#progressStep').hide();
+            $('#resultStep').show();
+            currentStep = 3;
+
+            $('#btnPrevStep').show();
+            $('#btnFinish').show();
+            $('#btnCancel').hide();
+        }
+
+        // 完成导入
+        function finishImport() {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('importModal'));
+            if (modal) {
+                modal.hide();
+            }
+            // 刷新物料列表
+            loadMaterials();
+        }
+
+        // 初始化导入模态框
+        initImportModal();
+        
+        // 下载物料导入模板
+        function downloadMaterialTemplate() {
+            // 创建一个包含模板数据的CSV文件，添加BOM头解决中文乱码问题
+            const csvContent = '\ufeff' + `半成品料号,半成品描述,原料物料号,原料描述,数量\nSP001,测试半成品1,RM001,测试原料1,3kg\nSP002,测试半成品2,RM002,测试原料2,5kg`;
+            
+            // 创建Blob对象
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            
+            // 创建下载链接
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', '物料导入模板.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+
+    <!-- 编辑物料弹窗 -->
+    <div class="modal fade" id="editModal" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">新增物料</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editForm">
+                        <input type="hidden" id="editMaterialId">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="semiProductCode">半成品料号</label>
+                                    <input type="text" class="form-control" id="semiProductCode" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="semiProductDesc">半成品描述</label>
+                                    <input type="text" class="form-control" id="semiProductDesc" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="rawMaterialCode">原料物料号</label>
+                                    <input type="text" class="form-control" id="rawMaterialCode" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="rawMaterialDesc">原料描述</label>
+                                    <input type="text" class="form-control" id="rawMaterialDesc" required>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal" style="background-color: #6c757d; border-color: #6c757d;">关闭</button>
+                    <button type="button" class="btn btn-primary" onclick="submitForm()" style="background-color: #1E88E5; border-color: #1E88E5;">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入弹窗 -->
+    <div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importModalLabel">Excel导入</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <!-- 第一步：上传文件 -->
+                        <div id="uploadStep" class="import-step active">
+                            <div class="alert alert-info">
+                                <h4><i class="bi bi-info-circle"></i> 导入说明</h4>
+                                <ol>
+                                    <li>请下载 <a href="javascript:void(0);" onclick="downloadMaterialTemplate()" style="color:red">物料导入模板</a>，按照模板格式填写数据</li>
+                                    <li>文件格式：Excel (.xlsx, .xls) 或 CSV (.csv)</li>
+                                    <li>文件大小：不超过10MB</li>
+                                    <li>支持批量导入，每次最多1000条记录</li>
+                                    <li>必填字段：半成品料号、原料物料号、数量</li>
+                                </ol>
+                            </div>
+
+                            <div class="upload-area" id="excelUploadArea" style="margin: 20px 0;">
+                                <div class="upload-placeholder text-center" style="padding: 40px 20px; border: 2px dashed #1E88E5; border-radius: 8px; background-color: #f9f9f9;">
+                                    <i class="bi bi-cloud-upload" style="font-size: 48px; color: #1E88E5; margin-bottom: 15px;"></i>
+                                    <h4>点击或拖拽Excel文件到此处</h4>
+                                    <p class="text-muted">支持 .xlsx、.xls 和 .csv 格式，文件大小不超过10MB</p>
+                                    <button type="button" class="btn btn-primary mt-3" onclick="$('#excelFileInput').click();">
+                                        <i class="bi bi-folder-open"></i> 选择文件
+                                    </button>
+                                    <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" style="display: none;">
+                                </div>
+                            </div>
+
+                            <div class="selected-file" id="selectedFileInfo" style="display: none; margin: 20px 0;">
+                                <div class="alert alert-success">
+                                    <h5><i class="bi bi-file-earmark-spreadsheet"></i> 已选择文件</h5>
+                                    <div id="fileInfoContent">
+                                        <!-- 文件信息将在这里显示 -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 第二步：导入进度 -->
+                        <div id="progressStep" class="import-step" style="display: none;">
+                            <h4 class="text-center">正在导入，请稍候...</h4>
+                            <div class="progress" style="height: 30px; margin: 20px 0;">
+                                <div id="importProgress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%; line-height: 30px; font-weight: bold;">
+                                    0%
+                                </div>
+                            </div>
+                            <div class="progress-info text-center">
+                                <p id="progressText">准备导入...</p>
+                                <p id="detailInfo" class="text-muted"></p>
+                            </div>
+                        </div>
+
+                        <!-- 第三步：导入结果 -->
+                        <div id="resultStep" class="import-step" style="display: none;">
+                            <div id="importResult" style="margin: 20px 0;">
+                                <!-- 导入结果将在这里显示 -->
+                            </div>
+
+                            <div class="error-log" id="errorLogContainer" style="display: none;">
+                                <h5><i class="bi bi-exclamation-triangle"></i> 错误日志</h5>
+                                <div class="error-log-content" id="errorLogContent" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-top: 10px;">
+                                    <!-- 错误日志将在这里显示 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                    <button type="button" class="btn btn-secondary" id="btnCancel" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="btnStartImport" onclick="startImport()" style="display: none;">
+                        <i class="bi bi-play"></i> 开始导入
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btnPrevStep" onclick="prevStep()" style="display: none;">
+                        <i class="bi bi-arrow-left"></i> 上一步
+                    </button>
+                    <button type="button" class="btn btn-success" id="btnFinish" onclick="finishImport()" style="display: none;">
+                        <i class="bi bi-check"></i> 完成
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
