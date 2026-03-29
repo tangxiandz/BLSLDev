@@ -1,6 +1,9 @@
 @page
+@using Microsoft.Extensions.Options
+@inject IOptions<ApiSettings> ApiSettings
 @{  
     ViewData["Title"] = "桶料管理";
+    var apiBaseUrl = ApiSettings.Value.BaseUrl;
 }
 
 <div class="card">
@@ -24,10 +27,10 @@
         <div class="search-box mb-4">
             <div class="row">
                 <div class="col-md-4">
-                    <input type="text" class="form-control" placeholder="桶号" id="BucketCode">
+                    <input type="text" class="form-control" placeholder="原料物料号" id="RawMaterialCode">
                 </div>
                 <div class="col-md-4">
-                    <input type="text" class="form-control" placeholder="原料物料号" id="RawMaterialCode">
+                    <input type="text" class="form-control" placeholder="桶号" id="BucketCode">
                 </div>
                 <div class="col-md-4">
                     <button class="btn btn-primary btn-block" onclick="searchBuckets()" style="background-color: #1E88E5; border-color: #1E88E5;">
@@ -67,6 +70,7 @@
 
 @section Scripts {
     <script>
+        const apiBaseUrl = '@apiBaseUrl';
         // 桶料数据
         let buckets = [];
         let filteredBuckets = [];
@@ -81,7 +85,7 @@
         // 加载桶料列表
         function loadBuckets() {
             $.ajax({
-                url: 'http://localhost:5018/api/Feeding/buckets',
+                url: apiBaseUrl + '/api/Feeding/buckets',
                 method: 'GET',
                 success: function(data) {
                     buckets = data;
@@ -119,15 +123,15 @@
                 const row = `
                     <tr>
                         <td>${start + index + 1}</td>
-                        <td>${bucket.rawMaterialCode}</td>
-                        <td>${bucket.rawMaterialDesc}</td>
-                        <td>${bucket.code}</td>
-                        <td>${bucket.weight}</td>
+                        <td>${bucket.RawMaterialCode}</td>
+                        <td>${bucket.RawMaterialDesc}</td>
+                        <td>${bucket.Code}</td>
+                        <td>${bucket.Weight}</td>
                         <td>
-                            <button class="btn btn-sm btn-primary mr-2" onclick="openEditModal(${bucket.id})" title="编辑">
+                            <button class="btn btn-sm btn-primary mr-2" onclick="openEditModal(${bucket.Id})" title="编辑">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteBucket(${bucket.id})" title="删除">
+                            <button class="btn btn-sm btn-danger" onclick="deleteBucket(${bucket.Id})" title="删除">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </td>
@@ -217,11 +221,11 @@
             filteredBuckets = buckets.filter(bucket => {
                 let match = true;
                 
-                if (bucketCode && !bucket.code.toLowerCase().includes(bucketCode)) {
+                if (bucketCode && !bucket.Code.toLowerCase().includes(bucketCode)) {
                     match = false;
                 }
                 
-                if (rawMaterialCode && !bucket.rawMaterialCode.toLowerCase().includes(rawMaterialCode)) {
+                if (rawMaterialCode && !bucket.RawMaterialCode.toLowerCase().includes(rawMaterialCode)) {
                     match = false;
                 }
                 
@@ -246,13 +250,16 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: `http://localhost:5018/api/Feeding/bucket/${id}`,
+                        url: `${apiBaseUrl}/api/Feeding/bucket/${id}`,
                         method: 'DELETE',
                         success: function(response) {
+                            // 1秒后自动隐藏的成功通知
                             Swal.fire({
                                 icon: 'success',
                                 title: '删除成功',
-                                text: response.Message
+                                text: response.Message,
+                                showConfirmButton: false,
+                                timer: 1000
                             });
                             loadBuckets();
                         },
@@ -277,7 +284,6 @@
             $('#rawMaterialCode').val('');
             $('#rawMaterialDesc').val('');
             $('#weight').val('');
-            $('#status').val('空闲');
             $('#editModalLabel').text('新增桶料');
             const modal = new bootstrap.Modal(document.getElementById('editModal'));
             modal.show();
@@ -286,14 +292,13 @@
         // 打开编辑桶料弹窗
         function openEditModal(id) {
             // 获取桶料信息
-            const bucket = buckets.find(b => b.id === id);
+            const bucket = buckets.find(b => b.Id === id);
             if (bucket) {
-                $('#editBucketId').val(bucket.id);
-                $('#bucketCode').val(bucket.code);
-                $('#rawMaterialCode').val(bucket.rawMaterialCode);
-                $('#rawMaterialDesc').val(bucket.rawMaterialDesc);
-                $('#weight').val(bucket.weight);
-                $('#status').val(bucket.status);
+                $('#editBucketId').val(bucket.Id);
+                $('#bucketCode').val(bucket.Code);
+                $('#rawMaterialCode').val(bucket.RawMaterialCode);
+                $('#rawMaterialDesc').val(bucket.RawMaterialDesc);
+                $('#weight').val(bucket.Weight);
                 $('#editModalLabel').text('编辑桶料');
                 const modal = new bootstrap.Modal(document.getElementById('editModal'));
                 modal.show();
@@ -321,9 +326,9 @@
             
             // 检查是否存在相同的原料号和桶号的桶料
             const isDuplicate = buckets.some(bucket => 
-                bucket.code === bucketCode && 
-                bucket.rawMaterialCode === rawMaterialCode && 
-                bucket.id != bucketId
+                bucket.Code === bucketCode && 
+                bucket.RawMaterialCode === rawMaterialCode && 
+                bucket.Id != bucketId
             );
             
             if (isDuplicate) {
@@ -341,8 +346,7 @@
                 Code: $('#bucketCode').val().trim(),
                 RawMaterialCode: $('#rawMaterialCode').val().trim(),
                 RawMaterialDesc: $('#rawMaterialDesc').val().trim(),
-                Weight: parseFloat($('#weight').val()),
-                Status: $('#status').val()
+                Weight: parseFloat($('#weight').val())
             };
             
             console.log('表单数据:', bucketData);
@@ -351,10 +355,10 @@
             // 判断是新增还是编辑
             if (bucketId) {
                 // 编辑
-                console.log('发送编辑请求:', `http://localhost:5018/api/Feeding/bucket/${bucketId}`);
-                $.ajax({
-                    url: `http://localhost:5018/api/Feeding/bucket/${bucketId}`,
-                    method: 'PUT',
+                console.log('发送编辑请求:', `${apiBaseUrl}/api/Feeding/bucket/${bucketId}`);
+                    $.ajax({
+                        url: `${apiBaseUrl}/api/Feeding/bucket/${bucketId}`,
+                        method: 'PUT',
                     contentType: 'application/json',
                     data: JSON.stringify(bucketData),
                     success: function(response) {
@@ -363,11 +367,13 @@
                         if (modal) {
                             modal.hide();
                         }
+                        // 1秒后自动隐藏的成功通知
                         Swal.fire({
                             icon: 'success',
                             title: '更新成功',
                             text: response.message,
-                            confirmButtonColor: '#1E88E5'
+                            showConfirmButton: false,
+                            timer: 1000
                         });
                         loadBuckets();
                     },
@@ -383,9 +389,9 @@
                 });
             } else {
                 // 新增
-                console.log('发送新增请求:', 'http://localhost:5018/api/Feeding/bucket');
+                console.log('发送新增请求:', apiBaseUrl + '/api/Feeding/bucket');
                 $.ajax({
-                    url: 'http://localhost:5018/api/Feeding/bucket',
+                    url: apiBaseUrl + '/api/Feeding/bucket',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(bucketData),
@@ -395,11 +401,13 @@
                         if (modal) {
                             modal.hide();
                         }
+                        // 1秒后自动隐藏的成功通知
                         Swal.fire({
                             icon: 'success',
                             title: '添加成功',
                             text: response.message,
-                            confirmButtonColor: '#1E88E5'
+                            showConfirmButton: false,
+                            timer: 1000
                         });
                         loadBuckets();
                     },
@@ -610,7 +618,7 @@
             $('#progressText').text('正在上传文件...');
 
             $.ajax({
-                url: 'http://localhost:5018/api/Feeding/import/buckets',
+                url: apiBaseUrl + '/api/Feeding/import/buckets',
                 method: 'POST',
                 data: formData,
                 contentType: false,
@@ -797,35 +805,26 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="rawMaterialCode">原料物料号</label>
+                                    <label for="rawMaterialCode"><span style="color: red;">*</span> 原料物料号</label>
                                     <input type="text" class="form-control" id="rawMaterialCode" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="rawMaterialDesc">原料描述</label>
-                                    <input type="text" class="form-control" id="rawMaterialDesc" required>
+                                    <input type="text" class="form-control" id="rawMaterialDesc">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="bucketCode">桶号</label>
+                                    <label for="bucketCode"><span style="color: red;">*</span> 桶号</label>
                                     <input type="text" class="form-control" id="bucketCode" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="weight">重量(kg)</label>
+                                    <label for="weight"><span style="color: red;">*</span> 重量(kg)</label>
                                     <input type="number" class="form-control" id="weight" required min="0" step="0.01">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="status">状态</label>
-                                    <select class="form-control" id="status" required>
-                                        <option value="空闲">空闲</option>
-                                        <option value="使用中">使用中</option>
-                                    </select>
                                 </div>
                             </div>
                         </div>

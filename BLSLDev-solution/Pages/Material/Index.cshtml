@@ -1,6 +1,9 @@
 @page
+@using Microsoft.Extensions.Options
+@inject IOptions<ApiSettings> ApiSettings
 @{  
     ViewData["Title"] = "物料管理";
+    var apiBaseUrl = ApiSettings.Value.BaseUrl;
 }
 
 <div class="card">
@@ -70,6 +73,7 @@
 
 @section Scripts {
     <script>
+        const apiBaseUrl = '@apiBaseUrl';
         // 物料数据
         let materials = [];
         let filteredMaterials = [];
@@ -84,7 +88,7 @@
         // 加载物料列表
         function loadMaterials() {
             $.ajax({
-                url: 'http://localhost:5018/api/Mixing/materials',
+                url: apiBaseUrl + '/api/Mixing/materials',
                 method: 'GET',
                 success: function(data) {
                     console.log('API返回的数据:', data);
@@ -123,15 +127,15 @@
                 const row = `
                     <tr>
                         <td>${start + index + 1}</td>
-                        <td>${material.semiProductCode}</td>
-                        <td>${material.semiProductDesc}</td>
-                        <td>${material.rawMaterialCode}</td>
-                        <td>${material.rawMaterialDesc}</td>
+                        <td>${material.SemiProductCode}</td>
+                        <td>${material.SemiProductDesc}</td>
+                        <td>${material.RawMaterialCode}</td>
+                        <td>${material.RawMaterialDesc}</td>
                         <td>
-                            <button class="btn btn-sm btn-primary mr-2" onclick="openEditModal(${material.id})" title="编辑">
+                            <button class="btn btn-sm btn-primary mr-2" onclick="openEditModal(${material.Id})" title="编辑">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteMaterial(${material.id})" title="删除">
+                            <button class="btn btn-sm btn-danger" onclick="deleteMaterial(${material.Id})" title="删除">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </td>
@@ -222,16 +226,16 @@
             filteredMaterials = materials.filter(material => {
                 let match = true;
                 
-                if (semiProductCode && !material.semiProductCode.toLowerCase().includes(semiProductCode)) {
+                if (semiProductCode && !material.SemiProductCode.toLowerCase().includes(semiProductCode)) {
                     match = false;
                 }
                 
-                if (rawMaterialCode && !material.rawMaterialCode.toLowerCase().includes(rawMaterialCode)) {
+                if (rawMaterialCode && !material.RawMaterialCode.toLowerCase().includes(rawMaterialCode)) {
                     match = false;
                 }
                 
-                if (description && !material.semiProductDesc.toLowerCase().includes(description) && 
-                    !material.rawMaterialDesc.toLowerCase().includes(description)) {
+                if (description && !material.SemiProductDesc.toLowerCase().includes(description) && 
+                    !material.RawMaterialDesc.toLowerCase().includes(description)) {
                     match = false;
                 }
                 
@@ -256,13 +260,16 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: `http://localhost:5018/api/Mixing/material/${id}`,
+                        url: `${apiBaseUrl}/api/Mixing/material/${id}`,
                         method: 'DELETE',
                         success: function(response) {
+                            // 1秒后自动隐藏的成功通知
                             Swal.fire({
                                 icon: 'success',
                                 title: '删除成功',
-                                text: response.Message
+                                text: response.Message,
+                                showConfirmButton: false,
+                                timer: 1000
                             });
                             loadMaterials();
                         },
@@ -295,13 +302,13 @@
         // 打开编辑物料弹窗
         function openEditModal(id) {
             // 获取物料信息
-            const material = materials.find(m => m.id === id);
+            const material = materials.find(m => m.Id === id);
             if (material) {
-                $('#editMaterialId').val(material.id);
-                $('#semiProductCode').val(material.semiProductCode);
-                $('#semiProductDesc').val(material.semiProductDesc);
-                $('#rawMaterialCode').val(material.rawMaterialCode);
-                $('#rawMaterialDesc').val(material.rawMaterialDesc);
+                $('#editMaterialId').val(material.Id);
+                $('#semiProductCode').val(material.SemiProductCode);
+                $('#semiProductDesc').val(material.SemiProductDesc);
+                $('#rawMaterialCode').val(material.RawMaterialCode);
+                $('#rawMaterialDesc').val(material.RawMaterialDesc);
                 $('#editModalLabel').text('编辑物料');
                 const modal = new bootstrap.Modal(document.getElementById('editModal'));
                 modal.show();
@@ -329,9 +336,9 @@
             
             // 检查是否存在相同的半成品料号和原料号的物料
             const isDuplicate = materials.some(material => 
-                material.semiProductCode === semiProductCode && 
-                material.rawMaterialCode === rawMaterialCode && 
-                material.id != materialId
+                material.SemiProductCode === semiProductCode && 
+                material.RawMaterialCode === rawMaterialCode && 
+                material.Id != materialId
             );
             
             if (isDuplicate) {
@@ -359,10 +366,10 @@
             // 判断是新增还是编辑
             if (materialId) {
                 // 编辑
-                console.log('发送编辑请求:', `http://localhost:5018/api/Mixing/material/${materialId}`);
-                $.ajax({
-                    url: `http://localhost:5018/api/Mixing/material/${materialId}`,
-                    method: 'PUT',
+                console.log('发送编辑请求:', `${apiBaseUrl}/api/Mixing/material/${materialId}`);
+                    $.ajax({
+                        url: `${apiBaseUrl}/api/Mixing/material/${materialId}`,
+                        method: 'PUT',
                     contentType: 'application/json',
                     data: JSON.stringify(materialData),
                     success: function(response) {
@@ -371,11 +378,13 @@
                         if (modal) {
                             modal.hide();
                         }
+                        // 1秒后自动隐藏的成功通知
                         Swal.fire({
                             icon: 'success',
                             title: '更新成功',
                             text: response.message,
-                            confirmButtonColor: '#1E88E5'
+                            showConfirmButton: false,
+                            timer: 1000
                         });
                         loadMaterials();
                     },
@@ -391,9 +400,9 @@
                 });
             } else {
                 // 新增
-                console.log('发送新增请求:', 'http://localhost:5018/api/Mixing/material');
+                console.log('发送新增请求:', apiBaseUrl + '/api/Mixing/material');
                 $.ajax({
-                    url: 'http://localhost:5018/api/Mixing/material',
+                    url: apiBaseUrl + '/api/Mixing/material',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(materialData),
@@ -403,11 +412,13 @@
                         if (modal) {
                             modal.hide();
                         }
+                        // 1秒后自动隐藏的成功通知
                         Swal.fire({
                             icon: 'success',
                             title: '添加成功',
                             text: response.message,
-                            confirmButtonColor: '#1E88E5'
+                            showConfirmButton: false,
+                            timer: 1000
                         });
                         loadMaterials();
                     },
@@ -618,7 +629,7 @@
             $('#progressText').text('正在上传文件...');
 
             $.ajax({
-                url: 'http://localhost:5018/api/Mixing/import/materials',
+                url: apiBaseUrl + '/api/Mixing/import/materials',
                 method: 'POST',
                 data: formData,
                 contentType: false,
@@ -805,26 +816,26 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="semiProductCode">半成品料号</label>
+                                    <label for="semiProductCode"><span style="color: red;">*</span> 半成品料号</label>
                                     <input type="text" class="form-control" id="semiProductCode" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="semiProductDesc">半成品描述</label>
-                                    <input type="text" class="form-control" id="semiProductDesc" required>
+                                    <input type="text" class="form-control" id="semiProductDesc">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="rawMaterialCode">原料物料号</label>
+                                    <label for="rawMaterialCode"><span style="color: red;">*</span> 原料物料号</label>
                                     <input type="text" class="form-control" id="rawMaterialCode" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="rawMaterialDesc">原料描述</label>
-                                    <input type="text" class="form-control" id="rawMaterialDesc" required>
+                                    <input type="text" class="form-control" id="rawMaterialDesc">
                                 </div>
                             </div>
                         </div>
