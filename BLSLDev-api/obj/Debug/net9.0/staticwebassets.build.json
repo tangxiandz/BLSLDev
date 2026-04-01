@@ -1,1 +1,12 @@
-{"Version":1,"Hash":"C7DxDYB8VA7Q/sZq176ovzRxdn9SjScI9jrMSLtuquQ=","Source":"BLSLDev-api","BasePath":"/","Mode":"Root","ManifestType":"Build","ReferencedProjectsConfiguration":[],"DiscoveryPatterns":[],"Assets":[],"Endpoints":[]}
+{
+  "Version": 1,
+  "Hash": "6RbetP4mTaVakVE/1M3hDn3AHSbvRjBaUXyo9vugTR0=",
+  "Source": "BLSLDev-api",
+  "BasePath": "_content/BLSLDev-api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

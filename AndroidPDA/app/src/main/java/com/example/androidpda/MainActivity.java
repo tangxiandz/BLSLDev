@@ -34,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
                 selectedFragment = new FeedingFragment();
             } else if (itemId == R.id.nav_mixing) {
                 selectedFragment = new MixingFragment();
+            } else if (itemId == R.id.nav_server) {
+                selectedFragment = new ServerFragment();
             }
 
             if (selectedFragment != null) {

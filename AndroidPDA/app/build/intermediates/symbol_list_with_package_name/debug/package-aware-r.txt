@@ -3194,8 +3194,11 @@ id btn_export
 id btn_import
 id btn_refresh
 id btn_reset
+id btn_save
 id btn_scan
 id btn_search
+id btn_submit
+id btn_validate
 id buttonPanel
 id cache_measures
 id callMeasure
@@ -3280,7 +3283,12 @@ id et_bucket_code
 id et_keyword
 id et_material_code
 id et_material_name
+id et_plc_ip
+id et_plc_port
+id et_plc_protocol
+id et_raw_material_code
 id et_semi_product_code
+id et_server_url
 id exitUntilCollapsed
 id expand_activities_button
 id expanded_menu
@@ -3310,6 +3318,7 @@ id graph_wrap
 id group_divider
 id grouping
 id groups
+id header
 id header_title
 id hideable
 id home
@@ -3405,6 +3414,7 @@ id mtrl_view_tag_bottom_padding
 id multiply
 id nav_feeding
 id nav_mixing
+id nav_server
 id navigation_bar_item_active_indicator_view
 id navigation_bar_item_icon_container
 id navigation_bar_item_icon_view
@@ -3579,13 +3589,13 @@ id transition_scene_layoutid_cache
 id transition_transform
 id triangle
 id tv_bucket_code
-id tv_bucket_list
 id tv_material_code
 id tv_no_data
 id tv_open_bucket
 id tv_quantity
 id tv_result
 id tv_scan_result
+id tv_semi_product_desc
 id unchecked
 id uniform
 id unlabeled
@@ -3745,6 +3755,7 @@ layout fragment_feeding
 layout fragment_material
 layout fragment_mixing
 layout fragment_scan
+layout fragment_server
 layout fragment_statistics
 layout item_material
 layout m3_alert_dialog
@@ -5265,3 +5276,4 @@ styleable ViewTransition android_id SharedValue SharedValueId clearsTag duration
 styleable include constraintSet
 xml backup_rules
 xml data_extraction_rules
+xml network_security_config

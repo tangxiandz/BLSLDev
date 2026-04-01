@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -32,6 +33,7 @@ public class MixingFragment extends Fragment {
     private EditText etSemiProductCode;
     private LinearLayout llMaterialsList;
     private TextView tvResult;
+    private Button btnSubmit;
 
     // 原料数据
     private List<MaterialInfo> materialList = new ArrayList<>();
@@ -39,6 +41,8 @@ public class MixingFragment extends Fragment {
     public MixingFragment() {
         // Required empty public constructor
     }
+
+    private TextView tvSemiProductDesc;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -48,6 +52,8 @@ public class MixingFragment extends Fragment {
         etSemiProductCode = view.findViewById(R.id.et_semi_product_code);
         llMaterialsList = view.findViewById(R.id.ll_materials_list);
         tvResult = view.findViewById(R.id.tv_result);
+        tvSemiProductDesc = view.findViewById(R.id.tv_semi_product_desc);
+        btnSubmit = view.findViewById(R.id.btn_submit);
 
         // 检测网络连接
         checkNetwork();
@@ -58,8 +64,13 @@ public class MixingFragment extends Fragment {
             return true;
         });
 
+        // 设置提交按钮点击事件
+        btnSubmit.setOnClickListener(v -> searchMaterials());
+
         // 设置文本框获取焦点，便于扫描枪扫描
         etSemiProductCode.requestFocus();
+        // 确保键盘不会自动弹出
+        getActivity().getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
 
         return view;
     }
@@ -126,11 +137,11 @@ public class MixingFragment extends Fragment {
     }
 
     private void openBucket(MaterialInfo material) {
-        // 模拟开桶操作
-        // 实际项目中这里会发送信号给PLC
-        tvResult.setText("开桶成功：" + material.getBucketCode());
-        tvResult.setTextColor(getResources().getColor(R.color.success));
-        tvResult.setVisibility(View.VISIBLE);
+        // 打开桶盖（通过PLC通讯）
+        PlcUtil.openBucketByPLC(getContext(), material.getBucketCode());
+        
+        // 显示开桶成功提示
+        Toast.makeText(getContext(), "原料桶已打开并提交记录", Toast.LENGTH_LONG).show();
 
         // 提交拌料记录
         new SubmitMixingRecordTask().execute(etSemiProductCode.getText().toString().trim(), material.getMaterialCode(), material.getBucketCode(), material.getQuantity(), material);
@@ -152,7 +163,7 @@ public class MixingFragment extends Fragment {
             List<MaterialInfo> materials = new ArrayList<>();
 
             try {
-                URL url = new URL("http://localhost:5018/api/Mixing/materials/" + semiProductCode);
+                URL url = new URL(ServerFragment.getServerUrl(getContext()) + ApiConfig.MIXING_MATERIALS + semiProductCode);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
                 connection.setRequestProperty("Content-Type", "application/json");
@@ -171,12 +182,25 @@ public class MixingFragment extends Fragment {
                     JSONArray jsonArray = new JSONArray(response.toString());
                     for (int i = 0; i < jsonArray.length(); i++) {
                         JSONObject jsonObject = jsonArray.getJSONObject(i);
-                        String materialCode = jsonObject.getString("rawMaterialCode");
-                        String quantity = jsonObject.getString("quantity");
+                        String materialCode = jsonObject.getString("RawMaterialCode");
+                        String quantity = jsonObject.getString("Quantity");
+                        String semiProductDesc = jsonObject.optString("RawMaterialDesc", "");
 
                         // 这里简化处理，实际项目中可能需要从桶料表中获取对应的桶号
                         String bucketCode = getBucketCodeByMaterialCode(materialCode);
-                        materials.add(new MaterialInfo(materialCode, bucketCode, quantity));
+                        materials.add(new MaterialInfo(materialCode, bucketCode, quantity, semiProductDesc));
+                    }
+                    
+                    // 如果有数据，显示第一个半成品的描述
+                    if (jsonArray.length() > 0) {
+                        JSONObject firstObject = jsonArray.getJSONObject(0);
+                        String semiProductDesc = firstObject.optString("RawMaterialDesc", "");
+                        if (!semiProductDesc.isEmpty()) {
+                            getActivity().runOnUiThread(() -> {
+                                tvSemiProductDesc.setText(semiProductDesc);
+                                tvSemiProductDesc.setVisibility(View.VISIBLE);
+                            });
+                        }
                     }
                 }
                 connection.disconnect();
@@ -203,9 +227,7 @@ public class MixingFragment extends Fragment {
 
         @Override
         protected void onPreExecute() {
-            tvResult.setText("提交记录中...");
-            tvResult.setTextColor(getResources().getColor(R.color.primary));
-            tvResult.setVisibility(View.VISIBLE);
+            // 已经在openBucket方法中显示了提示，这里不再显示
         }
 
         @Override
@@ -217,7 +239,7 @@ public class MixingFragment extends Fragment {
             material = (MaterialInfo) params[4];
 
             try {
-                URL url = new URL("http://localhost:5018/api/Mixing/record");
+                URL url = new URL(ServerFragment.getServerUrl(getContext()) + ApiConfig.MIXING_RECORD);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");
                 connection.setRequestProperty("Content-Type", "application/json");
@@ -249,9 +271,6 @@ public class MixingFragment extends Fragment {
         @Override
         protected void onPostExecute(Boolean success) {
             if (success) {
-                tvResult.setText("拌料记录提交成功");
-                tvResult.setTextColor(getResources().getColor(R.color.success));
-                tvResult.setVisibility(View.VISIBLE);
                 // 添加到已开通的桶料集合
                 openedBuckets.add(material.getBucketCode());
                 // 检查是否所有桶料都已开通
@@ -261,14 +280,13 @@ public class MixingFragment extends Fragment {
                     llMaterialsList.removeAllViews();
                     materialList.clear();
                     openedBuckets.clear();
-                    tvResult.setText("所有桶料已开通，请扫描下一个半成品料号");
-                    tvResult.setTextColor(getResources().getColor(R.color.success));
-                    tvResult.setVisibility(View.VISIBLE);
+                    tvSemiProductDesc.setVisibility(View.GONE);
+                    // 显示所有桶料已开通的提示
+                    Toast.makeText(getContext(), "所有桶料已开通，请扫描下一个半成品料号", Toast.LENGTH_LONG).show();
                 }
             } else {
-                tvResult.setText("拌料记录提交失败");
-                tvResult.setTextColor(getResources().getColor(R.color.danger));
-                tvResult.setVisibility(View.VISIBLE);
+                // 显示提交失败的提示
+                Toast.makeText(getContext(), "拌料记录提交失败", Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -293,11 +311,13 @@ public class MixingFragment extends Fragment {
         private String materialCode;
         private String bucketCode;
         private String quantity;
+        private String semiProductDesc;
 
-        public MaterialInfo(String materialCode, String bucketCode, String quantity) {
+        public MaterialInfo(String materialCode, String bucketCode, String quantity, String semiProductDesc) {
             this.materialCode = materialCode;
             this.bucketCode = bucketCode;
             this.quantity = quantity;
+            this.semiProductDesc = semiProductDesc;
         }
 
         public String getMaterialCode() {
@@ -310,6 +330,10 @@ public class MixingFragment extends Fragment {
 
         public String getQuantity() {
             return quantity;
+        }
+
+        public String getSemiProductDesc() {
+            return semiProductDesc;
         }
     }
 }

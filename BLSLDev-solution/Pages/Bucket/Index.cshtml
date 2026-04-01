@@ -346,7 +346,8 @@
                 Code: $('#bucketCode').val().trim(),
                 RawMaterialCode: $('#rawMaterialCode').val().trim(),
                 RawMaterialDesc: $('#rawMaterialDesc').val().trim(),
-                Weight: parseFloat($('#weight').val())
+                Weight: parseFloat($('#weight').val()),
+                Status: '空闲' // 添加Status字段，默认为空闲
             };
             
             console.log('表单数据:', bucketData);
@@ -680,10 +681,10 @@
             
             // 检查result是否有数据
             if (result && typeof result === 'object') {
-                importedCount = parseInt(result.importedCount) || 0;
-                duplicateCount = parseInt(result.duplicateCount) || 0;
-                failedCount = parseInt(result.failedCount) || 0;
-                errorLogs = result.errorLogs || [];
+                importedCount = parseInt(result.ImportedCount) || 0;
+                duplicateCount = parseInt(result.DuplicateCount) || 0;
+                failedCount = parseInt(result.FailedCount) || 0;
+                errorLogs = result.ErrorLogs || [];
             }
             
             var totalRows = importedCount + duplicateCount + failedCount;

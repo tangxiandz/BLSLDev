@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BLSLDev-solution")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+be15c9982e0920106b409a32809c66ba066a1888")]
 [assembly: System.Reflection.AssemblyProductAttribute("BLSLDev-solution")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BLSLDev-solution")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
