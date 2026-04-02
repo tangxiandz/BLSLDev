@@ -128,7 +128,7 @@ public class MixingFragment extends Fragment {
 
         tvMaterialCode.setText("原料：" + material.getMaterialCode());
         tvBucketCode.setText("桶号：" + material.getBucketCode());
-        tvQuantity.setText("数量：" + material.getQuantity());
+        tvQuantity.setText("数量：" + material.getWeight());
 
         // 设置开桶文本点击事件
         tvOpenBucket.setOnClickListener(v -> openBucket(material));
@@ -144,7 +144,7 @@ public class MixingFragment extends Fragment {
         Toast.makeText(getContext(), "原料桶已打开并提交记录", Toast.LENGTH_LONG).show();
 
         // 提交拌料记录
-        new SubmitMixingRecordTask().execute(etSemiProductCode.getText().toString().trim(), material.getMaterialCode(), material.getBucketCode(), material.getQuantity(), material);
+        new SubmitMixingRecordTask().execute(etSemiProductCode.getText().toString().trim(), material.getMaterialCode(), material.getBucketCode(), material.getWeight(), material);
     }
 
     // 获取物料信息的异步任务
@@ -183,12 +183,15 @@ public class MixingFragment extends Fragment {
                     for (int i = 0; i < jsonArray.length(); i++) {
                         JSONObject jsonObject = jsonArray.getJSONObject(i);
                         String materialCode = jsonObject.getString("RawMaterialCode");
-                        String quantity = jsonObject.getString("Quantity");
                         String semiProductDesc = jsonObject.optString("RawMaterialDesc", "");
 
-                        // 这里简化处理，实际项目中可能需要从桶料表中获取对应的桶号
-                        String bucketCode = getBucketCodeByMaterialCode(materialCode);
-                        materials.add(new MaterialInfo(materialCode, bucketCode, quantity, semiProductDesc));
+                        // 从API获取该原料对应的桶号和重量
+                        BucketInfo bucketInfo = getBucketInfoByMaterialCode(materialCode);
+                        if (bucketInfo != null) {
+                            materials.add(new MaterialInfo(materialCode, bucketInfo.getCode(), bucketInfo.getWeight(), semiProductDesc));
+                        } else {
+                            materials.add(new MaterialInfo(materialCode, "未知桶号", "0kg", semiProductDesc));
+                        }
                     }
                     
                     // 如果有数据，显示第一个半成品的描述
@@ -291,32 +294,74 @@ public class MixingFragment extends Fragment {
         }
     }
 
-    // 根据物料号获取桶号（模拟）
-    private String getBucketCodeByMaterialCode(String materialCode) {
-        // 实际项目中这里会从API获取
-        switch (materialCode) {
-            case "RM001":
-                return "1#";
-            case "RM002":
-                return "2#";
-            case "RM003":
-                return "3#";
-            default:
-                return "未知桶号";
+    // 桶料信息类
+    private static class BucketInfo {
+        private String code;
+        private String weight;
+
+        public BucketInfo(String code, String weight) {
+            this.code = code;
+            this.weight = weight;
         }
+
+        public String getCode() {
+            return code;
+        }
+
+        public String getWeight() {
+            return weight;
+        }
+    }
+
+    // 根据物料号从API获取桶料信息
+    private BucketInfo getBucketInfoByMaterialCode(String materialCode) {
+        try {
+            URL url = new URL(ServerFragment.getServerUrl(getContext()) + "/api/Feeding/buckets");
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Content-Type", "application/json");
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                // 解析JSON响应 - 获取桶料列表
+                JSONArray jsonArray = new JSONArray(response.toString());
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jsonObject = jsonArray.getJSONObject(i);
+                    if (jsonObject.getString("RawMaterialCode").equals(materialCode)) {
+                        String code = jsonObject.getString("Code");
+                        double weight = jsonObject.getDouble("Weight");
+                        return new BucketInfo(code, weight + "kg");
+                    }
+                }
+            }
+            connection.disconnect();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        // 如果没有找到桶料，返回null
+        return null;
     }
 
     // 原料信息类
     private static class MaterialInfo {
         private String materialCode;
         private String bucketCode;
-        private String quantity;
+        private String weight;
         private String semiProductDesc;
 
-        public MaterialInfo(String materialCode, String bucketCode, String quantity, String semiProductDesc) {
+        public MaterialInfo(String materialCode, String bucketCode, String weight, String semiProductDesc) {
             this.materialCode = materialCode;
             this.bucketCode = bucketCode;
-            this.quantity = quantity;
+            this.weight = weight;
             this.semiProductDesc = semiProductDesc;
         }
 
@@ -328,8 +373,8 @@ public class MixingFragment extends Fragment {
             return bucketCode;
         }
 
-        public String getQuantity() {
-            return quantity;
+        public String getWeight() {
+            return weight;
         }
 
         public String getSemiProductDesc() {

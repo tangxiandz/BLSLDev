@@ -1,6 +1,7 @@
 using BLSLDev_api.Data;
 using BLSLDev_api.Models;
 using Microsoft.AspNetCore.Mvc;
+using OfficeOpenXml;
 
 namespace BLSLDev_api.Controllers
 {
@@ -158,7 +159,7 @@ namespace BLSLDev_api.Controllers
             try
             {
 
-                
+
                 var importedCount = 0;
                 var duplicateCount = 0;
                 var failedCount = 0;
@@ -255,10 +256,10 @@ namespace BLSLDev_api.Controllers
                         await _dbContext.SaveChangesAsync();
                     }
                 }
-                else if (fileExtension == ".xlsx" || fileExtension == ".xls")
+                else if (fileExtension == ".xlsx")
                 {
                     // 处理Excel文件
-                    using (var package = new OfficeOpenXml.ExcelPackage(file.OpenReadStream()))
+                    using (var package = new ExcelPackage(file.OpenReadStream()))
                     {
                         var worksheet = package.Workbook.Worksheets[0]; // 取第一个工作表
                         var rowCount = worksheet.Dimension.Rows;
