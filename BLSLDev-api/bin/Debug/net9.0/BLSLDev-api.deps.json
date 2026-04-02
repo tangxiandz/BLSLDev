@@ -8,6 +8,7 @@
     ".NETCoreApp,Version=v9.0": {
       "BLSLDev-api/1.0.0": {
         "dependencies": {
+          "EPPlus": "8.5.1",
           "Microsoft.AspNetCore.OpenApi": "9.0.14",
           "Microsoft.EntityFrameworkCore": "9.0.14",
           "Microsoft.EntityFrameworkCore.SqlServer": "9.0.14",
@@ -50,6 +51,29 @@
           "lib/netstandard2.0/Azure.Identity.dll": {
             "assemblyVersion": "1.11.4.0",
             "fileVersion": "1.1100.424.31005"
+          }
+        }
+      },
+      "EPPlus/8.5.1": {
+        "dependencies": {
+          "EPPlus.Interfaces": "8.4.0",
+          "Microsoft.Extensions.Configuration.Json": "9.0.3",
+          "Microsoft.IO.RecyclableMemoryStream": "3.0.1",
+          "System.Security.Cryptography.Pkcs": "9.0.3",
+          "System.Security.Cryptography.Xml": "9.0.3"
+        },
+        "runtime": {
+          "lib/net9.0/EPPlus.dll": {
+            "assemblyVersion": "8.5.1.0",
+            "fileVersion": "8.5.1.0"
+          }
+        }
+      },
+      "EPPlus.Interfaces/8.4.0": {
+        "runtime": {
+          "lib/net9.0/EPPlus.Interfaces.dll": {
+            "assemblyVersion": "8.4.0.0",
+            "fileVersion": "8.4.0.0"
           }
         }
       },
@@ -539,6 +563,18 @@
           }
         }
       },
+      "Microsoft.Extensions.Configuration/9.0.3": {
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "9.0.14",
+          "Microsoft.Extensions.Primitives": "9.0.14"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Configuration.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.325.11113"
+          }
+        }
+      },
       "Microsoft.Extensions.Configuration.Abstractions/9.0.14": {
         "dependencies": {
           "Microsoft.Extensions.Primitives": "9.0.14"
@@ -547,6 +583,35 @@
           "lib/net9.0/Microsoft.Extensions.Configuration.Abstractions.dll": {
             "assemblyVersion": "9.0.0.0",
             "fileVersion": "9.0.1426.11910"
+          }
+        }
+      },
+      "Microsoft.Extensions.Configuration.FileExtensions/9.0.3": {
+        "dependencies": {
+          "Microsoft.Extensions.Configuration": "9.0.3",
+          "Microsoft.Extensions.Configuration.Abstractions": "9.0.14",
+          "Microsoft.Extensions.FileProviders.Abstractions": "9.0.3",
+          "Microsoft.Extensions.FileProviders.Physical": "9.0.3",
+          "Microsoft.Extensions.Primitives": "9.0.14"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Configuration.FileExtensions.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.325.11113"
+          }
+        }
+      },
+      "Microsoft.Extensions.Configuration.Json/9.0.3": {
+        "dependencies": {
+          "Microsoft.Extensions.Configuration": "9.0.3",
+          "Microsoft.Extensions.Configuration.Abstractions": "9.0.14",
+          "Microsoft.Extensions.Configuration.FileExtensions": "9.0.3",
+          "Microsoft.Extensions.FileProviders.Abstractions": "9.0.3"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Configuration.Json.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.325.11113"
           }
         }
       },
@@ -574,6 +639,38 @@
           "lib/net9.0/Microsoft.Extensions.DependencyModel.dll": {
             "assemblyVersion": "9.0.0.14",
             "fileVersion": "9.0.1426.11910"
+          }
+        }
+      },
+      "Microsoft.Extensions.FileProviders.Abstractions/9.0.3": {
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "9.0.14"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.FileProviders.Abstractions.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.325.11113"
+          }
+        }
+      },
+      "Microsoft.Extensions.FileProviders.Physical/9.0.3": {
+        "dependencies": {
+          "Microsoft.Extensions.FileProviders.Abstractions": "9.0.3",
+          "Microsoft.Extensions.FileSystemGlobbing": "9.0.3",
+          "Microsoft.Extensions.Primitives": "9.0.14"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.FileProviders.Physical.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.325.11113"
+          }
+        }
+      },
+      "Microsoft.Extensions.FileSystemGlobbing/9.0.3": {
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.FileSystemGlobbing.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.325.11113"
           }
         }
       },
@@ -712,6 +809,14 @@
           "lib/net6.0/Microsoft.IdentityModel.Tokens.dll": {
             "assemblyVersion": "6.35.0.0",
             "fileVersion": "6.35.0.41201"
+          }
+        }
+      },
+      "Microsoft.IO.RecyclableMemoryStream/3.0.1": {
+        "runtime": {
+          "lib/net6.0/Microsoft.IO.RecyclableMemoryStream.dll": {
+            "assemblyVersion": "3.0.1.0",
+            "fileVersion": "3.0.1.0"
           }
         }
       },
@@ -993,6 +1098,22 @@
           "System.Formats.Asn1": "9.0.14"
         }
       },
+      "System.Security.Cryptography.Pkcs/9.0.3": {
+        "runtime": {
+          "lib/net9.0/System.Security.Cryptography.Pkcs.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.325.11113"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/win/lib/net9.0/System.Security.Cryptography.Pkcs.dll": {
+            "rid": "win",
+            "assetType": "runtime",
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.325.11113"
+          }
+        }
+      },
       "System.Security.Cryptography.ProtectedData/6.0.0": {
         "runtime": {
           "lib/net6.0/System.Security.Cryptography.ProtectedData.dll": {
@@ -1006,6 +1127,17 @@
             "assetType": "runtime",
             "assemblyVersion": "6.0.0.0",
             "fileVersion": "6.0.21.52210"
+          }
+        }
+      },
+      "System.Security.Cryptography.Xml/9.0.3": {
+        "dependencies": {
+          "System.Security.Cryptography.Pkcs": "9.0.3"
+        },
+        "runtime": {
+          "lib/net9.0/System.Security.Cryptography.Xml.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.325.11113"
           }
         }
       },
@@ -1089,6 +1221,20 @@
       "sha512": "sha512-Sf4BoE6Q3jTgFkgBkx7qztYOFELBCo+wQgpYDwal/qJ1unBH73ywPztIJKXBXORRzAeNijsuxhk94h0TIMvfYg==",
       "path": "azure.identity/1.11.4",
       "hashPath": "azure.identity.1.11.4.nupkg.sha512"
+    },
+    "EPPlus/8.5.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-LhdQjZ7gTJYYMyHVdBTeIq8N+tYQeV1/VZSnOGeopoJFMWFqJ8V81L9h84yH7PkpF4p7LVJX1uakYTwgmf8Siw==",
+      "path": "epplus/8.5.1",
+      "hashPath": "epplus.8.5.1.nupkg.sha512"
+    },
+    "EPPlus.Interfaces/8.4.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-QaEzDFG2vcQMPqUmoWv0vBTObtH8hffQmyDr2WkqRYF/nFSn2pkdBB4vudcd/EIv0N8M3P1fzzkPQgEWsFnUmA==",
+      "path": "epplus.interfaces/8.4.0",
+      "hashPath": "epplus.interfaces.8.4.0.nupkg.sha512"
     },
     "Humanizer.Core/2.14.1": {
       "type": "package",
@@ -1258,12 +1404,33 @@
       "path": "microsoft.extensions.caching.memory/9.0.14",
       "hashPath": "microsoft.extensions.caching.memory.9.0.14.nupkg.sha512"
     },
+    "Microsoft.Extensions.Configuration/9.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-RIEeZxWYm77+OWLwgik7DzSVSONjqkmcbuCb1koZdGAV7BgOUWnLz80VMyHZMw3onrVwFCCMHBBdruBPuQTvkg==",
+      "path": "microsoft.extensions.configuration/9.0.3",
+      "hashPath": "microsoft.extensions.configuration.9.0.3.nupkg.sha512"
+    },
     "Microsoft.Extensions.Configuration.Abstractions/9.0.14": {
       "type": "package",
       "serviceable": true,
       "sha512": "sha512-hoAjCCsJ/fANjaP6hUPru11b/y2evaDJ1m7uRBQU57Mrq0k1NkZLA3qP0zN+EOj2mvM9DXGlNwnLf3H1tRF05w==",
       "path": "microsoft.extensions.configuration.abstractions/9.0.14",
       "hashPath": "microsoft.extensions.configuration.abstractions.9.0.14.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Configuration.FileExtensions/9.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-tBNMSDJ2q7WQK2zwPhHY5I/q95t7sf6dT079mGrNm0yOZF/gM9JvR/LtCb/rwhRmh7A6XMnzv5WbpCh9KLq9EQ==",
+      "path": "microsoft.extensions.configuration.fileextensions/9.0.3",
+      "hashPath": "microsoft.extensions.configuration.fileextensions.9.0.3.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Configuration.Json/9.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-mjkp3ZwynNacZk4uq93I0DyCY48FZmi3yRV0xlfeDuWh44KcDunPXHwt8IWr4kL7cVM6eiFVe6YTJg97KzUAUA==",
+      "path": "microsoft.extensions.configuration.json/9.0.3",
+      "hashPath": "microsoft.extensions.configuration.json.9.0.3.nupkg.sha512"
     },
     "Microsoft.Extensions.DependencyInjection/9.0.14": {
       "type": "package",
@@ -1285,6 +1452,27 @@
       "sha512": "sha512-3KI67cvKZqHMBffWushySB0FqrFphIK3mnxnN9YoBdjsTPzSSIMYej4cqtHM4LgFMHcO33C5ObOHqzls+7eJng==",
       "path": "microsoft.extensions.dependencymodel/9.0.14",
       "hashPath": "microsoft.extensions.dependencymodel.9.0.14.nupkg.sha512"
+    },
+    "Microsoft.Extensions.FileProviders.Abstractions/9.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-umczZ3+QPpzlrW/lkvy+IB0p52+qZ5w++aqx2lTCMOaPKzwcbVdrJgiQ3ajw5QWBp7gChLUiCYkSlWUpfjv24g==",
+      "path": "microsoft.extensions.fileproviders.abstractions/9.0.3",
+      "hashPath": "microsoft.extensions.fileproviders.abstractions.9.0.3.nupkg.sha512"
+    },
+    "Microsoft.Extensions.FileProviders.Physical/9.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-th2+tQBV5oWjgKhip9GjiIv2AEK3QvfAO3tZcqV3F3dEt5D6Gb411RntCj1+8GS9HaRRSxjSGx/fCrMqIjkb1Q==",
+      "path": "microsoft.extensions.fileproviders.physical/9.0.3",
+      "hashPath": "microsoft.extensions.fileproviders.physical.9.0.3.nupkg.sha512"
+    },
+    "Microsoft.Extensions.FileSystemGlobbing/9.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-Rec77KHk4iNpFznHi5/6wF3MlUDcKqg26t8gRYbUm1PSukZ4B6mrXpZsJSNOiwyhhQVkjYbaoZxi5XJgRQ5lFg==",
+      "path": "microsoft.extensions.filesystemglobbing/9.0.3",
+      "hashPath": "microsoft.extensions.filesystemglobbing.9.0.3.nupkg.sha512"
     },
     "Microsoft.Extensions.Logging/9.0.14": {
       "type": "package",
@@ -1369,6 +1557,13 @@
       "sha512": "sha512-RN7lvp7s3Boucg1NaNAbqDbxtlLj5Qeb+4uSS1TeK5FSBVM40P4DKaTKChT43sHyKfh7V0zkrMph6DdHvyA4bg==",
       "path": "microsoft.identitymodel.tokens/6.35.0",
       "hashPath": "microsoft.identitymodel.tokens.6.35.0.nupkg.sha512"
+    },
+    "Microsoft.IO.RecyclableMemoryStream/3.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-s/s20YTVY9r9TPfTrN5g8zPF1YhwxyqO6PxUkrYTGI2B+OGPe9AdajWZrLhFqXIvqIW23fnUE4+ztrUWNU1+9g==",
+      "path": "microsoft.io.recyclablememorystream/3.0.1",
+      "hashPath": "microsoft.io.recyclablememorystream.3.0.1.nupkg.sha512"
     },
     "Microsoft.NETCore.Platforms/1.1.0": {
       "type": "package",
@@ -1608,12 +1803,26 @@
       "path": "system.security.cryptography.cng/5.0.0",
       "hashPath": "system.security.cryptography.cng.5.0.0.nupkg.sha512"
     },
+    "System.Security.Cryptography.Pkcs/9.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-4XYeGOYBYtvaF2bH+cps+vPWjI5jQCWR7R1B4dI9I1Da9JQrXYP7mxdci+zKV2Ie4JafaOnOoNaDtzxkaXUxCg==",
+      "path": "system.security.cryptography.pkcs/9.0.3",
+      "hashPath": "system.security.cryptography.pkcs.9.0.3.nupkg.sha512"
+    },
     "System.Security.Cryptography.ProtectedData/6.0.0": {
       "type": "package",
       "serviceable": true,
       "sha512": "sha512-rp1gMNEZpvx9vP0JW0oHLxlf8oSiQgtno77Y4PLUBjSiDYoD77Y8uXHr1Ea5XG4/pIKhqAdxZ8v8OTUtqo9PeQ==",
       "path": "system.security.cryptography.protecteddata/6.0.0",
       "hashPath": "system.security.cryptography.protecteddata.6.0.0.nupkg.sha512"
+    },
+    "System.Security.Cryptography.Xml/9.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-dPG84G5/szhNQ8utXUB4NmrJLGvFe8yd4P0MFjy0/VNxkQNGR6CkkLjptkO5b5rcnw/4c2xDKcrwLxgc1zKWgg==",
+      "path": "system.security.cryptography.xml/9.0.3",
+      "hashPath": "system.security.cryptography.xml.9.0.3.nupkg.sha512"
     },
     "System.Security.Permissions/6.0.0": {
       "type": "package",
