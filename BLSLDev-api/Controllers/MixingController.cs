@@ -157,46 +157,138 @@ namespace BLSLDev_api.Controllers
 
             try
             {
+
+                
                 var importedCount = 0;
                 var duplicateCount = 0;
                 var failedCount = 0;
                 var errorLogs = new List<string>();
 
-                using (var stream = new StreamReader(file.OpenReadStream(), System.Text.Encoding.UTF8))
+                // 检查文件类型
+                var fileExtension = Path.GetExtension(file.FileName).ToLower();
+                if (fileExtension == ".csv")
                 {
-                    // 跳过表头
-                    var headerLine = await stream.ReadLineAsync();
-                    if (string.IsNullOrWhiteSpace(headerLine))
+                    // 处理CSV文件
+                    using (var stream = new StreamReader(file.OpenReadStream(), System.Text.Encoding.UTF8))
                     {
-                        return Ok(new {
-                            Message = "物料导入成功",
-                            ImportedCount = 0,
-                            DuplicateCount = 0,
-                            FailedCount = 1,
-                            ErrorLogs = new List<string> { "文件没有表头" }
-                        });
-                    }
-
-                    string line;
-                    int lineNumber = 2; // 从第二行开始计算
-                    while ((line = await stream.ReadLineAsync()) != null)
-                    {
-                        if (string.IsNullOrWhiteSpace(line)) 
+                        // 跳过表头
+                        var headerLine = await stream.ReadLineAsync();
+                        if (string.IsNullOrWhiteSpace(headerLine))
                         {
-                            lineNumber++;
-                            continue;
+                            return Ok(new {
+                                Message = "物料导入成功",
+                                ImportedCount = 0,
+                                DuplicateCount = 0,
+                                FailedCount = 1,
+                                ErrorLogs = new List<string> { "文件没有表头" }
+                            });
                         }
 
-                        try
+                        string line;
+                        int lineNumber = 2; // 从第二行开始计算
+                        while ((line = await stream.ReadLineAsync()) != null)
                         {
-                            var parts = line.Split(',');
-                            if (parts.Length >= 5)
+                            if (string.IsNullOrWhiteSpace(line)) 
                             {
-                                var semiProductCode = parts[0].Trim();
-                                var semiProductDesc = parts[1].Trim();
-                                var rawMaterialCode = parts[2].Trim();
-                                var rawMaterialDesc = parts[3].Trim();
-                                var quantity = parts[4].Trim();
+                                lineNumber++;
+                                continue;
+                            }
+
+                            try
+                            {
+                                var parts = line.Split(',');
+                                if (parts.Length >= 5)
+                                {
+                                    var semiProductCode = parts[0].Trim();
+                                    var semiProductDesc = parts[1].Trim();
+                                    var rawMaterialCode = parts[2].Trim();
+                                    var rawMaterialDesc = parts[3].Trim();
+                                    var quantity = parts[4].Trim();
+
+                                    // 检查是否已存在相同的半成品料号和原料号
+                                    var existingMaterial = _dbContext.SemiProductMaterials
+                                        .FirstOrDefault(m => m.SemiProductCode == semiProductCode && m.RawMaterialCode == rawMaterialCode);
+
+                                    if (existingMaterial != null)
+                                    {
+                                        // 更新现有记录
+                                        existingMaterial.SemiProductDesc = semiProductDesc;
+                                        existingMaterial.RawMaterialDesc = rawMaterialDesc;
+                                        existingMaterial.Quantity = quantity;
+                                        existingMaterial.UpdatedAt = DateTime.Now;
+                                        duplicateCount++;
+                                    }
+                                    else
+                                    {
+                                        // 添加新记录
+                                        var newMaterial = new SemiProductMaterial
+                                        {
+                                            SemiProductCode = semiProductCode,
+                                            SemiProductDesc = semiProductDesc,
+                                            RawMaterialCode = rawMaterialCode,
+                                            RawMaterialDesc = rawMaterialDesc,
+                                            Quantity = quantity,
+                                            CreatedAt = DateTime.Now,
+                                            UpdatedAt = DateTime.Now
+                                        };
+                                        _dbContext.SemiProductMaterials.Add(newMaterial);
+                                        importedCount++;
+                                    }
+                                }
+                                else
+                                {
+                                    failedCount++;
+                                    errorLogs.Add($"列数不足，需要至少5列数据");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                failedCount++;
+                                errorLogs.Add($"处理失败: {ex.Message}");
+                            }
+                            finally
+                            {
+                                lineNumber++;
+                            }
+                        }
+
+                        await _dbContext.SaveChangesAsync();
+                    }
+                }
+                else if (fileExtension == ".xlsx" || fileExtension == ".xls")
+                {
+                    // 处理Excel文件
+                    using (var package = new OfficeOpenXml.ExcelPackage(file.OpenReadStream()))
+                    {
+                        var worksheet = package.Workbook.Worksheets[0]; // 取第一个工作表
+                        var rowCount = worksheet.Dimension.Rows;
+
+                        // 从第二行开始读取数据（跳过表头）
+                        for (int row = 2; row <= rowCount; row++)
+                        {
+                            try
+                            {
+                                // 先检查第一列是否为空，为空则跳过该行
+                                var semiProductCode = worksheet.Cells[row, 1].Text.Trim();
+                                if (string.IsNullOrWhiteSpace(semiProductCode))
+                                {
+                                    continue;
+                                }
+
+                                // 确保至少有5列数据
+                                var semiProductDesc = worksheet.Cells[row, 2].Text.Trim();
+                                var rawMaterialCode = worksheet.Cells[row, 3].Text.Trim();
+                                var rawMaterialDesc = worksheet.Cells[row, 4].Text.Trim();
+                                var quantity = worksheet.Cells[row, 5].Text.Trim();
+
+                                // 再次检查所有必要字段是否为空
+                                if (string.IsNullOrWhiteSpace(semiProductDesc) || 
+                                    string.IsNullOrWhiteSpace(rawMaterialCode) || 
+                                    string.IsNullOrWhiteSpace(rawMaterialDesc) || 
+                                    string.IsNullOrWhiteSpace(quantity))
+                                {
+                                    continue;
+                                }
 
                                 // 检查是否已存在相同的半成品料号和原料号
                                 var existingMaterial = _dbContext.SemiProductMaterials
@@ -228,24 +320,19 @@ namespace BLSLDev_api.Controllers
                                     importedCount++;
                                 }
                             }
-                            else
+                            catch (Exception ex)
                             {
                                 failedCount++;
-                                errorLogs.Add($"列数不足，需要至少5列数据");
+                                errorLogs.Add($"第{row}行处理失败: {ex.Message}");
                             }
                         }
-                        catch (Exception ex)
-                        {
-                            failedCount++;
-                            errorLogs.Add($"处理失败: {ex.Message}");
-                        }
-                        finally
-                        {
-                            lineNumber++;
-                        }
-                    }
 
-                    await _dbContext.SaveChangesAsync();
+                        await _dbContext.SaveChangesAsync();
+                    }
+                }
+                else
+                {
+                    return BadRequest(new { Message = "不支持的文件类型，请上传CSV或Excel文件" });
                 }
 
                 return Ok(new {

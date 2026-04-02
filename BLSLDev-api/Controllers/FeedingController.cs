@@ -121,6 +121,24 @@ namespace BLSLDev_api.Controllers
                 .Select(b => b.Code)
                 .ToList();
 
+            // 如果没有找到对应的桶料，尝试通过半成品料号查找对应的原料料号
+            if (validBuckets.Count == 0)
+            {
+                var rawMaterialCodes = _dbContext.SemiProductMaterials
+                    .Where(spm => spm.SemiProductCode == request.RawMaterialCode)
+                    .Select(spm => spm.RawMaterialCode)
+                    .Distinct()
+                    .ToList();
+
+                if (rawMaterialCodes.Count > 0)
+                {
+                    validBuckets = _dbContext.Buckets
+                        .Where(b => rawMaterialCodes.Contains(b.RawMaterialCode))
+                        .Select(b => b.Code)
+                        .ToList();
+                }
+            }
+
             // 验证桶料号是否在列表中
             bool isValid = validBuckets.Contains(request.BucketCode);
             string validationResult = isValid ? "验证成功" : "验证失败";
@@ -172,36 +190,131 @@ namespace BLSLDev_api.Controllers
 
             try
             {
+
+                
                 var importedCount = 0;
                 var duplicateCount = 0;
                 var failedCount = 0;
                 var errorLogs = new List<string>();
 
-                using (var stream = new StreamReader(file.OpenReadStream(), System.Text.Encoding.UTF8))
+                // 检查文件类型
+                var fileExtension = Path.GetExtension(file.FileName).ToLower();
+                if (fileExtension == ".csv")
                 {
-                    // 跳过表头
-                    await stream.ReadLineAsync();
-
-                    string line;
-                    int lineNumber = 2; // 从第二行开始计算
-                    while ((line = await stream.ReadLineAsync()) != null)
+                    // 处理CSV文件
+                    using (var stream = new StreamReader(file.OpenReadStream(), System.Text.Encoding.UTF8))
                     {
-                        if (string.IsNullOrWhiteSpace(line)) 
+                        // 跳过表头
+                        await stream.ReadLineAsync();
+
+                        string line;
+                        int lineNumber = 2; // 从第二行开始计算
+                        while ((line = await stream.ReadLineAsync()) != null)
                         {
-                            lineNumber++;
-                            continue;
+                            if (string.IsNullOrWhiteSpace(line)) 
+                            {
+                                lineNumber++;
+                                continue;
+                            }
+
+                            try
+                            {
+                                var parts = line.Split(',');
+                                if (parts.Length >= 5)
+                                {
+                                    var code = parts[0].Trim();
+                                    var rawMaterialCode = parts[1].Trim();
+                                    var rawMaterialDesc = parts[2].Trim();
+                                    var weight = decimal.TryParse(parts[3].Trim(), out var weightValue) ? weightValue : 0;
+                                    var status = parts[4].Trim();
+
+                                    // 检查是否已存在相同的桶号
+                                    var existingBucket = _dbContext.Buckets
+                                        .FirstOrDefault(b => b.Code == code);
+
+                                    if (existingBucket != null)
+                                    {
+                                        // 更新现有记录
+                                        existingBucket.RawMaterialCode = rawMaterialCode;
+                                        existingBucket.RawMaterialDesc = rawMaterialDesc;
+                                        existingBucket.Weight = weight;
+                                        existingBucket.Status = status;
+                                        existingBucket.UpdatedAt = DateTime.Now;
+                                        duplicateCount++;
+                                    }
+                                    else
+                                    {
+                                        // 添加新记录
+                                        var newBucket = new Bucket
+                                        {
+                                            Code = code,
+                                            RawMaterialCode = rawMaterialCode,
+                                            RawMaterialDesc = rawMaterialDesc,
+                                            Weight = weight,
+                                            Status = status,
+                                            CreatedAt = DateTime.Now,
+                                            UpdatedAt = DateTime.Now
+                                        };
+                                        _dbContext.Buckets.Add(newBucket);
+                                        importedCount++;
+                                    }
+                                }
+                                else
+                                {
+                                    failedCount++;
+                                    errorLogs.Add($"列数不足，需要至少5列数据");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                failedCount++;
+                                errorLogs.Add($"处理失败: {ex.Message}");
+                            }
+                            finally
+                            {
+                                lineNumber++;
+                            }
                         }
 
-                        try
+                        await _dbContext.SaveChangesAsync();
+                    }
+                }
+                else if (fileExtension == ".xlsx" || fileExtension == ".xls")
+                {
+                    // 处理Excel文件
+                    using (var package = new OfficeOpenXml.ExcelPackage(file.OpenReadStream()))
+                    {
+                        var worksheet = package.Workbook.Worksheets[0]; // 取第一个工作表
+                        var rowCount = worksheet.Dimension.Rows;
+
+                        // 从第二行开始读取数据（跳过表头）
+                        for (int row = 2; row <= rowCount; row++)
                         {
-                            var parts = line.Split(',');
-                            if (parts.Length >= 5)
+                            try
                             {
-                                var code = parts[0].Trim();
-                                var rawMaterialCode = parts[1].Trim();
-                                var rawMaterialDesc = parts[2].Trim();
-                                var weight = decimal.TryParse(parts[3].Trim(), out var weightValue) ? weightValue : 0;
-                                var status = parts[4].Trim();
+                                // 先检查第一列是否为空，为空则跳过该行
+                                var code = worksheet.Cells[row, 1].Text.Trim();
+                                if (string.IsNullOrWhiteSpace(code))
+                                {
+                                    continue;
+                                }
+
+                                // 确保至少有5列数据
+                                var rawMaterialCode = worksheet.Cells[row, 2].Text.Trim();
+                                var rawMaterialDesc = worksheet.Cells[row, 3].Text.Trim();
+                                var weightText = worksheet.Cells[row, 4].Text.Trim();
+                                var status = worksheet.Cells[row, 5].Text.Trim();
+
+                                // 再次检查所有必要字段是否为空
+                                if (string.IsNullOrWhiteSpace(rawMaterialCode) || 
+                                    string.IsNullOrWhiteSpace(rawMaterialDesc) || 
+                                    string.IsNullOrWhiteSpace(weightText) || 
+                                    string.IsNullOrWhiteSpace(status))
+                                {
+                                    continue;
+                                }
+
+                                var weight = decimal.TryParse(weightText, out var weightValue) ? weightValue : 0;
 
                                 // 检查是否已存在相同的桶号
                                 var existingBucket = _dbContext.Buckets
@@ -234,24 +347,19 @@ namespace BLSLDev_api.Controllers
                                     importedCount++;
                                 }
                             }
-                            else
+                            catch (Exception ex)
                             {
                                 failedCount++;
-                                errorLogs.Add($"列数不足，需要至少5列数据");
+                                errorLogs.Add($"第{row}行处理失败: {ex.Message}");
                             }
                         }
-                        catch (Exception ex)
-                        {
-                            failedCount++;
-                            errorLogs.Add($"处理失败: {ex.Message}");
-                        }
-                        finally
-                        {
-                            lineNumber++;
-                        }
-                    }
 
-                    await _dbContext.SaveChangesAsync();
+                        await _dbContext.SaveChangesAsync();
+                    }
+                }
+                else
+                {
+                    return BadRequest(new { Message = "不支持的文件类型，请上传CSV或Excel文件" });
                 }
 
                 return Ok(new {
