@@ -1,0 +1,1207 @@
+@{    Layout = "~/Views/Shared/_Index.cshtml";}
+
+<style>
+    /* 强制显示分页元素 */
+    .fixed-table-pagination {
+        display: block !important;
+    }
+    
+    .pull-right.pagination {
+        display: block !important;
+    }
+    
+    /* 固定表头样式 */
+    .fixed-table-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background-color: #fff;
+    }
+    
+    .fixed-table-header table {
+        background-color: #fff;
+    }
+    
+    .fixed-table-body {
+        overflow-y: auto;
+        max-height: calc(100vh - 300px);
+    }
+    
+    /* 确保表头在滚动时固定在顶部 */
+    .bootstrap-table .fixed-table-container .fixed-table-header {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+</style>
+
+
+<div class="container-div">
+    <div class="row">
+        <div id="searchDiv" class="col-sm-12 search-collapse">
+            <div class="select-list">
+                <ul>
+                    <li>
+                        关键词搜索：<input id="keyWords" col="KeyWords" type="text" />
+                    </li>
+                    <li>
+                        系统商品编码：<input id="systemProductCode" col="SystemProductCode" type="text" />
+                    </li>
+                    <li>
+                        产品名称：<input id="productName" col="ProductName" type="text" />
+                    </li>
+                    <li style="display: flex; align-items: center;">
+                        状态：
+                        <select id="status" col="Status" class="form-control" style="width: 120px;">
+                            <option value="">全部</option>
+                            <option value="1">上架</option>
+                            <option value="0">下架</option>
+                        </select>
+                    </li>
+                    <li>
+                        <a id="btnSearch" class="btn btn-primary btn-sm" onclick="searchGrid()"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="btn-group-sm hidden-xs" id="toolbar">
+            <a id="btnAdd" class="btn btn-success" onclick="showSaveForm(true)"><i class="fa fa-plus"></i> 新增</a>
+            <a id="btnEdit" class="btn btn-primary disabled" onclick="showSaveForm(false)"><i class="fa fa-edit"></i> 修改</a>
+            <a id="btnDelete" class="btn btn-danger disabled" onclick="deleteForm()"><i class="fa fa-remove"></i> 删除</a>
+            <a id="btnImport" class="btn btn-warning" onclick="showImportForm()"><i class="fa fa-upload"></i> 导入</a>
+            <a id="btnExport" class="btn btn-info" onclick="exportData()"><i class="fa fa-download"></i> 导出</a>
+
+            <a id="btnImages" class="btn btn-primary" onclick="showBatchUploadForm()">
+                <i class="fa fa-picture-o"></i> 批量上传图片
+            </a>
+        </div>
+        <div class="col-sm-12 select-table table-striped">
+            <table id="gridTable" data-mobile-responsive="true"></table>
+        </div>
+    </div>
+</div>
+<!-- 批量上传图片模态框 -->
+<div class="modal fade" id="batchUploadModal" tabindex="-1" role="dialog" aria-labelledby="batchUploadModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="batchUploadModalLabel">批量上传产品图片</h4>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <!-- 上传区域 -->
+                    <div class="upload-area" id="imageUploadArea" style="margin: 20px 0; min-height: 200px;">
+                        <div class="upload-placeholder text-center" id="uploadPlaceholder">
+                            <i class="fa fa-cloud-upload fa-4x" style="color: #3498db;"></i>
+                            <h4>点击或拖拽图片文件到此处</h4>
+                            <p class="text-muted">支持 JPG, PNG, GIF, BMP, WebP 格式，单文件最大5MB</p>
+                            <p class="text-muted">可一次选择多张图片（最多50张）</p>
+                            <button type="button" class="btn btn-primary" onclick="$('#imageFileInput').click();">
+                                <i class="fa fa-folder-open"></i> 选择图片
+                            </button>
+                          
+                        </div>
+                        <input type="file" id="imageFileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp"
+                               multiple style="display: none;">
+                        <div class="selected-files" id="selectedFilesInfo" style="display: none; margin-top: 20px;">
+                            <h5><i class="fa fa-file-image-o"></i> 已选择图片</h5>
+                            <div id="selectedFilesList" style="max-height: 300px; overflow-y: auto; margin-top: 10px;">
+                                <!-- 选择的文件列表将在这里显示 -->
+                            </div>
+                            <div class="file-count" style="margin-top: 10px; font-weight: bold;">
+                                已选择 <span id="fileCount">0</span> 张图片
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 上传进度 -->
+                    <div id="uploadProgressSection" style="display: none;">
+                        <h5 class="text-center">正在上传图片，请稍候...</h5>
+                        <div class="progress" style="height: 25px; margin: 20px 0;">
+                            <div id="uploadProgress" class="progress-bar progress-bar-striped active"
+                                 role="progressbar" style="width: 0%; line-height: 25px; font-weight: bold;">
+                                0%
+                            </div>
+                        </div>
+                        <div class="progress-info text-center">
+                            <p id="progressDetail">准备上传...</p>
+                        </div>
+                    </div>
+
+                    <!-- 上传结果 -->
+                    <div id="uploadResultSection" style="display: none;">
+                        <div id="uploadResult" class="alert" style="margin: 20px 0;">
+                            <!-- 上传结果将在这里显示 -->
+                        </div>
+
+                        <div class="result-details" id="uploadResultDetails" style="display: none;">
+                            <h5><i class="fa fa-list"></i> 上传结果详情</h5>
+                            <div id="uploadResultList" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-top: 10px;">
+                                <!-- 上传结果列表将在这里显示 -->
+                            </div>
+
+                            <div class="success-files" style="margin-top: 20px;">
+                                <h6><i class="fa fa-check-circle" style="color: #2ecc71;"></i> 成功上传的文件名列表：</h6>
+                                <div id="successFileNames" style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+                                    <!-- 成功的文件名将在这里显示 -->
+                                </div>
+                                <p class="text-muted" style="margin-top: 10px; font-size: 12px;">
+                                    提示：在导入Excel时，图片URL列只需填写文件名即可，如："product_123.jpg"
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" id="btnCancelUpload" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="btnStartUpload" onclick="startBatchUpload()" style="display: none;">
+                    <i class="fa fa-upload"></i> 开始上传
+                </button>
+                <button type="button" class="btn btn-default" id="btnUploadMore" onclick="resetUploadForm()" style="display: none;">
+                    <i class="fa fa-refresh"></i> 继续上传
+                </button>
+                <button type="button" class="btn btn-success" id="btnFinishUpload" onclick="finishBatchUpload()" style="display: none;">
+                    <i class="fa fa-check"></i> 完成
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- 导入模态框 -->
+<div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="importModalLabel">导入产品数据</h4>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <!-- 第一步：上传文件 -->
+                    <div id="uploadStep" class="import-step active">
+                        <div class="alert alert-info">
+                            <h4><i class="fa fa-info-circle"></i> 导入说明</h4>
+                            <ol>
+                                <li>请下载 <a href="javascript:void(0);" onclick="downloadTemplate()" style="color:red">产品导入模板</a>，按照模板格式填写数据</li>
+                                <li>文件格式：Excel (.xlsx, .xls)</li>
+                                <li>文件大小：不超过10MB</li>
+                                <li>支持批量导入，每次最多1000条记录</li>
+                                <li>必填字段：系统商品编码、SKU、产品名称、分类、品牌、供应商、价格等</li>
+                            </ol>
+                        </div>
+
+                        <div class="upload-area" id="excelUploadArea" style="margin: 20px 0;">
+                            <div class="upload-placeholder text-center">
+                                <i class="fa fa-cloud-upload fa-4x" style="color: #3498db;"></i>
+                                <h4>点击或拖拽Excel文件到此处</h4>
+                                <p class="text-muted">支持 .xlsx 和 .xls 格式，文件大小不超过10MB</p>
+                                <button type="button" class="btn btn-primary" onclick="$('#excelFileInput').click();">
+                                    <i class="fa fa-folder-open"></i> 选择文件
+                                </button>
+                                <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;">
+                            </div>
+                        </div>
+
+                        <div class="selected-file" id="selectedFileInfo" style="display: none; margin: 20px 0;">
+                            <div class="alert alert-success">
+                                <h5><i class="fa fa-file-excel-o"></i> 已选择文件</h5>
+                                <div id="fileInfoContent">
+                                    <!-- 文件信息将在这里显示 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 第二步：导入进度 -->
+                    <div id="progressStep" class="import-step" style="display: none;">
+                        <h4 class="text-center">正在导入，请稍候...</h4>
+                        <div class="progress" style="height: 30px; margin: 20px 0;">
+                            <div id="importProgress" class="progress-bar progress-bar-striped active"
+                                 role="progressbar" style="width: 0%; line-height: 30px; font-weight: bold;">
+                                0%
+                            </div>
+                        </div>
+                        <div class="progress-info text-center">
+                            <p id="progressText">准备导入...</p>
+                            <p id="detailInfo" class="text-muted"></p>
+                        </div>
+                    </div>
+
+                    <!-- 第三步：导入结果 -->
+                    <div id="resultStep" class="import-step" style="display: none;">
+                        <div id="importResult" class="alert" style="margin: 20px 0;">
+                            <!-- 导入结果将在这里显示 -->
+                        </div>
+
+                        <div class="error-log" id="errorLogContainer" style="display: none;">
+                            <h5><i class="fa fa-exclamation-triangle"></i> 错误日志</h5>
+                            <div class="error-log-content" id="errorLogContent" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-top: 10px;">
+                                <!-- 错误日志将在这里显示 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" class="btn btn-default" id="btnCancel" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="btnStartImport" onclick="startImport()" style="display: none;">
+                    <i class="fa fa-play"></i> 开始导入
+                </button>
+                <button type="button" class="btn btn-default" id="btnPrevStep" onclick="prevStep()" style="display: none;">
+                    <i class="fa fa-arrow-left"></i> 上一步
+                </button>
+                <button type="button" class="btn btn-success" id="btnFinish" onclick="finishImport()" style="display: none;">
+                    <i class="fa fa-check"></i> 完成
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(function () {
+        initGrid();
+        initImportModal();
+        initBatchUploadModal(); // 初始化批量上传模态框
+    });
+    
+    function initGrid() {
+        var queryUrl = '@Url.Content("~/ToolManage/Products/GetPageListJson")';
+        $('#gridTable').ysTable({
+            url: queryUrl,
+            fixedHeader: true,
+            columns: [
+                { checkbox: true, visible: true },
+                { field: 'Id', title: 'ID', visible: false },
+                {
+                    field: 'ProductImage',
+                    title: '产品图片',
+                    width: '80px',
+                    align: 'center',
+                    visible: false,
+                    formatter: function(value, row, index) {
+                        if (value && value.trim() !== '') {
+                            return '<img src="' + value + '" style="max-width: 60px; max-height: 60px; border-radius: 4px;" onerror="this.style.display=\'none\';" />';
+                        } else {
+                            return '<span class="text-muted">无图片</span>';
+                        }
+                    }
+                },
+                {
+                    field: 'SystemProductCode',
+                    title: '系统编码',
+                    width: '100px',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        if (value) {
+                           var idStr = row.Id.toString(); // 确保是字符串
+                            return '<a href="javascript:void(0);" onclick="showProductsDetail(\'' + idStr + '\')" ' +
+                                   'style="color: #1890ff; text-decoration: none; font-weight: bold;" ' +
+                                   'title="点击查看订单详情">' + value + '</a>';
+                        }
+                        return '';
+                    }
+                },
+                {
+                    field: 'SKU',
+                    title: 'SKU编码',
+                    align: 'center',
+                },
+                {
+                    field: 'ProductName',
+                    title: '产品名称',
+                    formatter: function(value, row, index) {
+                        if (value) {
+                            return '<div style="max-height: 40px; overflow: hidden; text-overflow: ellipsis;" title="' + value + '">' + value + '</div>';
+                        }
+                        return '';
+                    }
+                },
+                {
+                    field: 'CategoryPath',
+                    title: '分类路径',
+                    formatter: function(value, row, index) {
+                        if (row.CategoryName1 && row.CategoryName2 && row.CategoryName3) {
+                            return row.CategoryName1 + ' > ' + row.CategoryName2 + ' > ' + row.CategoryName3;
+                        }
+                        return '-';
+                    }
+                },
+                {
+                    field: 'BrandName',
+                    title: '品牌',
+                    align: 'center'
+                },
+                {
+                    field: 'Model',
+                    title: '产品型号',
+                    align: 'center',
+                },
+                {
+                    field: 'SupplierName',
+                    title: '供应商',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        if (value) {
+                            return '<div style="max-height: 40px; overflow: hidden; text-overflow: ellipsis;" title="' + value + '">' + value + '</div>';
+                        }
+                        return '';
+                    }
+                },
+
+                {
+                    field: 'PurchasePrice',
+                    title: '集采价',
+                    align: 'right',
+                    formatter: function(value, row, index) {
+                        if (value !== null && value !== undefined) {
+                            return '¥' + parseFloat(value).toFixed(2);
+                        }
+                        return '-';
+                    }
+                },
+                {
+                    field: 'ProxyPrice',
+                    title: '代发价',
+                    align: 'right',
+                    formatter: function(value, row, index) {
+                        if (value !== null && value !== undefined) {
+                            return '¥' + parseFloat(value).toFixed(2);
+                        }
+                        return '-';
+                    }
+                },
+                {
+                    field: 'SalePrice',
+                    title: '销售价',
+                    align: 'right',
+                    formatter: function(value, row, index) {
+                        if (value !== null && value !== undefined) {
+                            return '¥' + parseFloat(value).toFixed(2);
+                        }
+                        return '-';
+                    }
+                },
+                {
+                    field: 'MarketPrice',
+                    title: '市场价',
+                    align: 'right',
+                    formatter: function(value, row, index) {
+                        if (value !== null && value !== undefined) {
+                            return '¥' + parseFloat(value).toFixed(2);
+                        }
+                        return '-';
+                    }
+                },
+                {
+                    field: 'Status',
+                    title: '状态',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        if (value === 1) {
+                            return '<span class="badge badge-success">上架</span>';
+                        } else if (value === 0) {
+                            return '<span class="badge badge-danger">下架</span>';
+                        } else if (value === 2) {
+                            return '<span class="badge badge-warning">待审核</span>';
+                        } else {
+                            return '<span class="badge badge-secondary">未知</span>';
+                        }
+                    }
+                },
+                { field: 'Barcode', title: '条形码' , visible: false },
+                { field: 'BoxSpecification', title: '箱规', visible: false  },
+                { field: 'ShelfLife', title: '保质期' , visible: false },
+                { field: 'SingleWeight', title: '单品毛重(kg)', visible: false  },
+                { field: 'BoxWeight', title: '整箱重量(kg)', visible: false },
+                { field: 'ProductDimensions', title: '产品尺寸', visible: false  },
+                { field: 'BoxDimensions', title: '整箱尺寸', visible: false  },
+                { field: 'ProductConfiguration', title: '产品配置', visible: false  },
+                { field: 'ProductDescription', title: '产品介绍' , visible: false },
+                { field: 'DetailPageUrl', title: '详情页链接', visible: false  },
+                { field: 'ProductLink', title: '产品链接' , visible: false },
+                { field: 'Remark', title: '备注' , visible: false },
+                {
+                    field: 'BaseCreateTime',
+                    title: '创建时间',
+                    align: 'center',
+                     visible: false,
+                    formatter: function(value, row, index) {
+                        if (value) {
+                            return new Date(value).toLocaleDateString('zh-CN') + '<br/>' +
+                                   new Date(value).toLocaleTimeString('zh-CN', {hour12: false});
+                        }
+                        return '';
+                    }
+                }
+            ],
+            pagination: true,
+            pageSize: 20,
+            pageList: [10, 20, 25, 50, 100, 200],
+            paginationVAlign: 'bottom',
+            paginationHAlign: 'right',
+            paginationDetailHAlign: 'left',
+            paginationPreText: '‹',
+            paginationNextText: '›',
+            showPaginationSwitch: true,
+            showRefresh: true,
+            showColumns: true,
+            sidePagination: 'server',
+            queryParams: function (params) {
+                var pagination = $('#gridTable').ysTable('getPagination', params);
+                var queryString = $('#searchDiv').getWebControls(pagination);
+                return queryString;
+            }
+        });
+        
+        // 强制设置pageList选项，确保所有分页选项都显示
+        setTimeout(function() {
+            $('#gridTable').bootstrapTable('refreshOptions', {
+                pageList: [10, 20, 25, 50, 100, 200]
+            });
+        }, 500);
+    }
+    function showProductsDetail(productId) {
+       // 确保ID是字符串
+        var idStr = productId.toString();
+        // 编码URL参数
+        var encodedId = encodeURIComponent(idStr);
+
+        ys.openDialog({
+            title: '商品详情',
+            content: '@Url.Content("~/ToolManage/Products/ProductsDetail")' + '?id=' + encodedId,
+            width: '900px',
+            height: '700px',
+            btn: ['关闭']
+        });
+    }
+    function searchGrid() {
+        $('#gridTable').ysTable('search');
+        resetToolbarStatus();
+    }
+
+    function resetToolbarStatus() {
+        // 重置工具栏状态
+        var selectedRows = $('#gridTable').ysTable('getSelections');
+        if (selectedRows && selectedRows.length > 0) {
+            $('#btnEdit').removeClass('disabled');
+            $('#btnDelete').removeClass('disabled');
+        } else {
+            $('#btnEdit').addClass('disabled');
+            $('#btnDelete').addClass('disabled');
+        }
+    }
+
+    function showSaveForm(bAdd) {
+        var id = 0;
+        if (!bAdd) {
+            var selectedRow = $('#gridTable').ysTable('getSelections');
+            if (!ys.checkRowEdit(selectedRow)) {
+                return;
+            }
+            else {
+                id = selectedRow[0].Id;
+            }
+        }
+        ys.openDialog({
+            title: id > 0 ? '编辑产品' : '新增产品',
+            content: '@Url.Content("~/ToolManage/Products/ProductsForm")' + '?id=' + id,
+            width: '900px',
+            height: '650px',
+            callback: function (index, layero) {
+                var iframeWin = window[layero.find('iframe')[0]['name']];
+                iframeWin.saveForm(index);
+            }
+        });
+    }
+
+    function deleteForm() {
+        var selectedRow = $('#gridTable').ysTable('getSelections');
+        if (ys.checkRowDelete(selectedRow)) {
+            ys.confirm('确认要删除选中的' + selectedRow.length + '条数据吗？', function () {
+                var ids = ys.getIds(selectedRow);
+                ys.ajax({
+                    url: '@Url.Content("~/ToolManage/Products/DeleteFormJson")' + '?ids=' + ids,
+                    type: 'post',
+                    success: function (obj) {
+                        if (obj.Tag == 1) {
+                            ys.msgSuccess(obj.Message);
+                            searchGrid();
+                        }
+                        else {
+                            ys.msgError(obj.Message);
+                        }
+                    }
+                });
+            });
+        }
+    }
+
+    // 导入功能
+    function showImportForm() {
+        // 重置导入模态框
+        resetImportModal();
+        $('#importModal').modal('show');
+    }
+
+    function initImportModal() {
+        // 文件选择事件
+        $('#excelFileInput').change(function(e) {
+            handleFileSelect(e.target.files);
+        });
+
+        // 拖拽上传初始化
+        var uploadArea = document.getElementById('excelUploadArea');
+
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.remove('dragover');
+            handleFileSelect(e.dataTransfer.files);
+        });
+    }
+
+    function handleFileSelect(files) {
+        if (files.length === 0) return;
+
+        var file = files[0];
+
+        // 检查文件类型
+        var validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                         'application/vnd.ms-excel'];
+        if (validTypes.indexOf(file.type) === -1) {
+            ys.msgError('请选择Excel文件 (.xlsx 或 .xls)');
+            return;
+        }
+
+        // 检查文件大小（10MB）
+        if (file.size > 10 * 1024 * 1024) {
+            ys.msgError('文件大小不能超过10MB');
+            return;
+        }
+
+        // 显示文件信息
+        var fileSize = (file.size / 1024 / 1024).toFixed(2);
+        var fileInfo = '<div style="display: flex; align-items: center;"><div style="font-size: 48px; color: #2ecc71; margin-right: 15px;"><i class="fa fa-file-excel-o"></i></div><div><h5 style="margin: 0;">' + file.name + '</h5><p style="margin: 5px 0 0 0; color: #7f8c8d;">大小: ' + fileSize + ' MB | 类型: ' + file.type + '</p></div></div>';
+
+
+        $('#fileInfoContent').html(fileInfo);
+        $('#selectedFileInfo').show();
+        $('#btnStartImport').show();
+
+        // 保存文件对象
+        window.selectedFile = file;
+    }
+
+    // 下载模板
+    function downloadTemplate() {
+        // 这里应该调用后端接口下载模板文件
+        // 临时先给出一个提示
+        // ys.msgInfo('模板下载功能正在开发中，请稍后再试');
+
+        // 实际实现应该是：
+        window.open('@Url.Content("~/ToolManage/Products/DownloadImportTemplate")', '_blank');
+    }
+
+    var currentStep = 1;
+    var totalRows = 0;
+    var importedRows = 0;
+    var failedRows = 0;
+    var errorLogs = [];
+
+    function resetImportModal() {
+        currentStep = 1;
+        totalRows = 0;
+        importedRows = 0;
+        failedRows = 0;
+        errorLogs = [];
+
+        // 重置UI
+        $('#uploadStep').show().addClass('active');
+        $('#progressStep').hide().removeClass('active');
+        $('#resultStep').hide().removeClass('active');
+
+        $('#selectedFileInfo').hide();
+        $('#fileInfoContent').empty();
+        $('#excelFileInput').val('');
+
+        $('#btnStartImport').hide();
+        $('#btnPrevStep').hide();
+        $('#btnFinish').hide();
+        $('#btnCancel').show();
+
+        $('#importProgress').css('width', '0%').text('0%');
+        $('#progressText').text('准备导入...');
+        $('#detailInfo').text('');
+
+        $('#importResult').removeClass('alert-success alert-danger').html('');
+        $('#errorLogContainer').hide();
+        $('#errorLogContent').empty();
+
+        window.selectedFile = null;
+    }
+
+    function startImport() {
+        if (!window.selectedFile) {
+            ys.msgWarning('请先选择要导入的文件');
+            return;
+        }
+
+        // 切换到进度步骤
+        $('#uploadStep').hide().removeClass('active');
+        $('#progressStep').show().addClass('active');
+        currentStep = 2;
+
+        $('#btnStartImport').hide();
+        $('#btnCancel').hide();
+        $('#btnPrevStep').show();
+
+        // 开始上传和导入
+        uploadAndImportFile();
+    }
+
+    function prevStep() {
+        if (currentStep === 2) {
+            // 从进度步骤回到上传步骤
+            $('#progressStep').hide().removeClass('active');
+            $('#uploadStep').show().addClass('active');
+            currentStep = 1;
+
+            $('#btnPrevStep').hide();
+            $('#btnCancel').show();
+            $('#btnStartImport').show();
+        } else if (currentStep === 3) {
+            // 从结果步骤回到上传步骤
+            $('#resultStep').hide().removeClass('active');
+            $('#uploadStep').show().addClass('active');
+            currentStep = 1;
+
+            $('#btnPrevStep').hide();
+            $('#btnFinish').hide();
+            $('#btnCancel').show();
+            $('#btnStartImport').show();
+        }
+    }
+
+    function uploadAndImportFile() {
+        var formData = new FormData();
+        formData.append('file', window.selectedFile);
+
+        // 更新进度
+        $('#importProgress').css('width', '0%').text('0%');
+        $('#progressText').text('正在上传文件...');
+
+        $.ajax({
+            url: '@Url.Content("~/ToolManage/Products/ImportExcel")',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            xhr: function() {
+                var xhr = new XMLHttpRequest();
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        var percentComplete = Math.floor(e.loaded / e.total * 100);
+                        $('#importProgress').css('width', percentComplete + '%').text(percentComplete + '%');
+                        $('#progressText').text('文件上传中: ' + percentComplete + '%');
+                        $('#detailInfo').text('已上传 ' + (e.loaded/1024/1024).toFixed(2) + 'MB / ' + (e.total/1024/1024).toFixed(2) + 'MB');
+                    }
+                }, false);
+                return xhr;
+            },
+            success: function(response) {
+                // 上传完成，进度条显示100%
+                $('#importProgress').css('width', '100%').text('100%');
+                $('#progressText').text('文件上传完成，正在处理导入结果...');
+
+                // 稍等片刻显示结果
+                setTimeout(function() {
+                    showImportResult(response);
+                }, 500);
+            },
+            error: function(xhr, status, error) {
+                var errorMsg = '导入失败: ';
+                if (xhr.responseJSON && xhr.responseJSON.Message) {
+                    errorMsg += xhr.responseJSON.Message;
+                } else {
+                    errorMsg += error;
+                }
+                showImportError(errorMsg);
+            }
+        });
+    }
+
+
+    function showImportResult(result) {
+        // 切换到结果步骤
+        $('#progressStep').hide().removeClass('active');
+        $('#resultStep').show().addClass('active');
+        currentStep = 3;
+
+        $('#btnPrevStep').hide();
+        $('#btnFinish').show();
+        $('#btnCancel').hide();
+
+        if (result.Tag >= 0) {
+            var data = result.Data;
+
+            // 如果没有数据，显示默认值
+            var totalRows = data.TotalRows || 0;
+            var successRows = data.SuccessRows || 0;
+            var failedRows = data.FailedRows || 0;
+
+            // 计算成功率
+            var successRate = totalRows > 0 ? Math.round((successRows / totalRows) * 100) : 0;
+
+            // 参考订单清单导入的设计风格
+            var resultHtml = '<div style="background-color: #f8f9fa; padding: 30px; border-radius: 8px; text-align: center;">' +
+                '<div style="font-size: 48px; color: #28a745; margin-bottom: 15px;">' +
+                    '<i class="fa fa-check-circle"></i>' +
+                '</div>' +
+                '<h3 style="color: #28a745; margin-bottom: 20px;">导入完成</h3>' +
+                '<div class="row" style="margin-top: 20px; margin-bottom: 20px;">' +
+                    '<div class="col-md-3 col-md-offset-1">' +
+                        '<div class="stat-box" style="background-color: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">' +
+                            '<h4 style="font-size: 24px; margin: 0;">' + totalRows + '</h4>' +
+                            '<p style="margin: 5px 0 0 0; color: #6c757d;">总记录数</p>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                        '<div class="stat-box" style="background-color: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">' +
+                            '<h4 style="font-size: 24px; margin: 0; color: #28a745;">' + successRows + '</h4>' +
+                            '<p style="margin: 5px 0 0 0; color: #6c757d;">成功记录</p>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                        '<div class="stat-box" style="background-color: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">' +
+                            '<h4 style="font-size: 24px; margin: 0; color: #dc3545;">' + failedRows + '</h4>' +
+                            '<p style="margin: 5px 0 0 0; color: #6c757d;">失败记录</p>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            
+            // 如果有错误文件，显示下载按钮
+            if (data.ErrorFileInfo && data.ErrorFileInfo.HasErrorFile && data.ErrorFileInfo.ErrorFileUrl) {
+                resultHtml += '<div style="margin-top: 20px;"><a href="' + data.ErrorFileInfo.ErrorFileUrl + '" class="btn btn-danger" target="_blank"><i class="fa fa-download"></i> 下载错误清单</a></div>';
+            }
+
+            $('#importResult').html(resultHtml).removeClass('alert-success alert-danger');
+            
+            // 显示错误日志
+            if ((data.ErrorLogs && data.ErrorLogs.length > 0) || (result.Message && result.Message.trim() !== '')) {
+                $('#errorLogContainer').show();
+                var errorLogHtml = '<table class="table table-bordered table-hover">';
+                errorLogHtml += '<thead><tr><th width="80">行号</th><th width="120">字段</th><th>错误信息</th></tr></thead>';
+                errorLogHtml += '<tbody>';
+
+                if (data.ErrorLogs && data.ErrorLogs.length > 0) {
+                    data.ErrorLogs.forEach(function(log) {
+                        errorLogHtml += '<tr><td>第 ' + log.Row + ' 行</td><td>' + (log.Field || '通用') + '</td><td>' + log.Message + '</td></tr>';
+                    });
+                } else if (result.Message && result.Message.trim() !== '') {
+                    // 当ErrorLogs为空但Message有错误信息时，显示Message内容
+                    errorLogHtml += '<tr><td>-</td><td>通用</td><td>' + result.Message + '</td></tr>';
+                }
+
+                errorLogHtml += '</tbody></table>';
+                $('#errorLogContent').html(errorLogHtml);
+            } else {
+                $('#errorLogContainer').hide();
+            }
+        } 
+        else {
+            $('#importResult').html('<div style="background-color: #f8f9fa; padding: 30px; border-radius: 8px; text-align: center;">' +
+                '<div style="font-size: 48px; color: #dc3545; margin-bottom: 15px;">' +
+                    '<i class="fa fa-times-circle"></i>' +
+                '</div>' +
+                '<h3 style="color: #dc3545; margin-bottom: 10px;">导入失败</h3>' +
+                '<p style="color: #6c757d;">' + (result.Message || '未知错误') + '</p>' +
+            '</div>').removeClass('alert-success alert-danger');
+            $('#errorLogContainer').hide();
+        }
+    }
+
+    function showImportError(message) {
+        $('#importResult').html('<div style="text-align: center; padding: 20px;"><div style="font-size: 60px; color: #e74c3c; margin-bottom: 10px;"><i class="fa fa-times-circle"></i></div><h3 style="color: #e74c3c;">导入失败</h3><p>' + message + '</p></div>').addClass('alert-danger');
+
+        $('#progressStep').hide();
+        $('#resultStep').show();
+        currentStep = 3;
+
+        $('#btnPrevStep').show();
+        $('#btnFinish').show();
+        $('#btnCancel').hide();
+    }
+
+    function finishImport() {
+        $('#importModal').modal('hide');
+        // 刷新表格
+        searchGrid();
+    }
+    var selectedImageFiles = [];
+        // 显示批量上传表单
+    function showBatchUploadForm() {
+        resetUploadForm();
+        $('#batchUploadModal').modal('show');
+    }
+        // 初始化批量上传模态框
+    function initBatchUploadModal() {
+        // 文件选择事件
+       $(document).on('click', '.btn-select-images', function() {
+            $('#imageFileInput').click();
+        });
+
+        // 文件选择事件 - 使用事件委托
+        $(document).on('change', '#imageFileInput', function(e) {
+            if (e.target.files && e.target.files.length > 0) {
+                handleImageFilesSelect(e.target.files);
+            }
+        });
+
+        initDragAndDrop();
+    }
+        // 初始化拖拽上传
+    function initDragAndDrop() {
+        var uploadArea = document.getElementById('imageUploadArea');
+
+        if (!uploadArea) return;
+
+        ['dragover', 'dragleave', 'drop'].forEach(function(eventName) {
+            uploadArea.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        uploadArea.addEventListener('dragover', function() {
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', function() {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handleImageFilesSelect(e.dataTransfer.files);
+            }
+        });
+    }
+    // 处理选择的图片文件
+    function handleImageFilesSelect(files) {
+        if (files.length === 0) return;
+
+        // 检查文件数量限制
+        if (files.length > 50) {
+            ys.msgError('单次最多上传50张图片');
+            return;
+        }
+
+        // 清空之前的文件列表
+        selectedImageFiles = [];
+
+        // 检查每个文件
+        var validFiles = [];
+        var invalidFiles = [];
+
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+
+            // 检查文件类型
+            var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'];
+            if (!allowedTypes.includes(file.type.toLowerCase())) {
+                invalidFiles.push(file.name + ' (不支持的文件类型)');
+                continue;
+            }
+
+            // 检查文件大小（5MB）
+            if (file.size > 5 * 1024 * 1024) {
+                invalidFiles.push(file.name + ' (文件大小超过5MB)');
+                continue;
+            }
+
+            validFiles.push(file);
+        }
+
+        // 显示无效文件提示
+        if (invalidFiles.length > 0) {
+            ys.msgWarning('以下文件不符合要求：\n' + invalidFiles.join('\n'));
+        }
+
+        if (validFiles.length === 0) {
+            ys.msgWarning('没有有效的图片文件');
+            return;
+        }
+        // 保存有效的文件
+        selectedImageFiles = validFiles;
+
+        // 显示选择的文件列表
+        displaySelectedFiles(validFiles);
+
+        // 显示开始上传按钮
+        $('#btnStartUpload').show();
+    }
+
+    // 显示选择的文件列表
+    function displaySelectedFiles(files) {
+        var fileListHtml = '';
+        var totalSize = 0;
+
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            var fileSize = (file.size / 1024).toFixed(1);
+            totalSize += file.size;
+
+            fileListHtml += '<div class="file-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee;"><div style="display: flex; align-items: center;"><i class="fa fa-file-image-o" style="color: #3498db; margin-right: 10px; font-size: 20px;"></i><div><div style="font-weight: bold;">' + file.name + '</div><div style="font-size: 12px; color: #7f8c8d;">' + fileSize + ' KB</div></div></div><div><span class="badge badge-primary">' + file.type.split('/')[1].toUpperCase() + '</span></div></div>';
+
+        }
+
+        $('#selectedFilesList').html(fileListHtml);
+        $('#fileCount').text(files.length);
+
+        var totalSizeMB = (totalSize / 1024 / 1024).toFixed(2);
+        $('#selectedFilesInfo').show();
+
+        // 更新文件区域提示
+        $('#uploadPlaceholder').html('<i class="fa fa-check-circle fa-4x" style="color: #2ecc71;"></i><h4>已选择 ' + files.length + ' 张图片</h4><p class="text-muted">总大小: ' + totalSizeMB + ' MB</p><button type="button" class="btn btn-default" onclick="$(&quot;#imageFileInput&quot;).click();"><i class="fa fa-plus"></i> 添加更多图片</button>');
+
+    }
+
+    // 开始批量上传
+    function startBatchUpload() {
+        if (selectedImageFiles.length === 0) {
+            ys.msgWarning('请先选择要上传的图片');
+            return;
+        }
+
+        // 切换到上传进度界面
+        $('#selectedFilesInfo').hide();
+        $('#uploadProgressSection').show();
+        $('#btnStartUpload').hide();
+        $('#btnCancelUpload').hide();
+
+        // 创建FormData
+        var formData = new FormData();
+
+        for (var i = 0; i < selectedImageFiles.length; i++) {
+            formData.append('files', selectedImageFiles[i]);
+        }
+
+        // 更新进度
+        $('#uploadProgress').css('width', '0%').text('0%');
+        $('#progressDetail').text('正在准备上传...');
+
+        // 发送AJAX请求
+        $.ajax({
+            url: '@Url.Content("~/ToolManage/Products/BatchUploadImages")',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            xhr: function() {
+                var xhr = new XMLHttpRequest();
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        var percentComplete = Math.floor(e.loaded / e.total * 100);
+                        $('#uploadProgress').css('width', percentComplete + '%').text(percentComplete + '%');
+                        $('#progressDetail').text('上传进度: ' + percentComplete + '% (' + Math.floor(e.loaded/1024/1024) + 'MB/' + Math.floor(e.total/1024/1024) + 'MB)');
+                    }
+                }, false);
+                return xhr;
+            },
+            success: function(response) {
+                // 上传完成
+                $('#uploadProgress').css('width', '100%').text('100%');
+                $('#progressDetail').text('上传完成，正在处理结果...');
+
+                setTimeout(function() {
+                    showUploadResult(response);
+                }, 500);
+            },
+            error: function(xhr, status, error) {
+                var errorMsg = '上传失败: ';
+                if (xhr.responseJSON && xhr.responseJSON.Message) {
+                    errorMsg += xhr.responseJSON.Message;
+                } else {
+                    errorMsg += error;
+                }
+                showUploadError(errorMsg);
+            }
+        });
+    }
+
+    // 显示上传结果
+    function showUploadResult(response) {
+        // 切换到结果界面
+        $('#uploadProgressSection').hide();
+        $('#uploadResultSection').show();
+
+        if (response.Tag === 1) {
+            var data = response.Data;
+            var successCount = data.filter(function(item) { return item.IsSuccess; }).length;
+            var failedCount = data.length - successCount;
+
+            var resultHtml = '<div style="text-align: center; padding: 20px;"><div style="font-size: 60px; color: #2ecc71; margin-bottom: 10px;"><i class="fa fa-check-circle"></i></div><h3 style="color: #2ecc71;">上传完成</h3><p>' + (response.Message || '上传成功') + '</p><div class="row" style="margin-top: 20px;"><div class="col-md-6"><div class="stat-box"><h4 style="color: #2ecc71;">' + successCount + '</h4><p>成功数量</p></div></div><div class="col-md-6"><div class="stat-box"><h4 style="color: #e74c3c;">' + failedCount + '</h4><p>失败数量</p></div></div></div></div>';
+
+
+            $('#uploadResult').html(resultHtml).addClass('alert-success');
+
+            // 显示结果详情
+            if (data.length > 0) {
+                var resultListHtml = '';
+                var successFileNames = [];
+
+                data.forEach(function(item, index) {
+                    var statusIcon = item.IsSuccess ?
+                        '<i class="fa fa-check-circle" style="color: #2ecc71;"></i>' :
+                        '<i class="fa fa-times-circle" style="color: #e74c3c;"></i>';
+
+                    var statusText = item.IsSuccess ?
+                        '<span class="badge badge-success">成功</span>' :
+                        '<span class="badge badge-danger">失败</span>';
+
+                    resultListHtml += '<div class="result-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee;"><div style="display: flex; align-items: center; flex: 1;"><div style="margin-right: 10px; font-size: 20px;">' + statusIcon + '</div><div style="flex: 1;"><div style="font-weight: bold;">' + item.OriginalFileName + '</div>' + (item.IsSuccess ? '<div style="font-size: 12px; color: #27ae60;">已保存为: ' + item.FileName + '</div>' : '<div style="font-size: 12px; color: #c0392b;">' + (item.ErrorMessage || '上传失败') + '</div>') + '</div></div><div>' + statusText + '</div></div>';
+
+
+                    if (item.IsSuccess) {
+                        successFileNames.push(item.FileName);
+                    }
+                });
+
+                $('#uploadResultList').html(resultListHtml);
+                $('#uploadResultDetails').show();
+
+                // 显示成功的文件名列表
+                if (successFileNames.length > 0) {
+                    $('#successFileNames').html(successFileNames.join('<br>'));
+                }
+            }
+
+            // 显示操作按钮
+            $('#btnFinishUpload').show();
+            $('#btnUploadMore').show();
+        } else {
+            $('#uploadResult').html('<div style="text-align: center; padding: 20px;"><div style="font-size: 60px; color: #e74c3c; margin-bottom: 10px;"><i class="fa fa-exclamation-circle"></i></div><h3 style="color: #e74c3c;">上传失败</h3><p>' + (response.Message || '未知错误') + '</p></div>').addClass('alert-danger');
+
+            $('#btnFinishUpload').show();
+            $('#btnUploadMore').show();
+        }
+    }
+
+    // 显示上传错误
+    function showUploadError(message) {
+        $('#uploadResult').html('<div style="text-align: center; padding: 20px;"><div style="font-size: 60px; color: #e74c3c; margin-bottom: 10px;"><i class="fa fa-times-circle"></i></div><h3 style="color: #e74c3c;">上传失败</h3><p>' + message + '</p></div>').addClass('alert-danger');
+
+        $('#uploadProgressSection').hide();
+        $('#uploadResultSection').show();
+
+        $('#btnFinishUpload').show();
+        $('#btnUploadMore').show();
+    }
+
+    // 重置上传表单
+    function resetUploadForm() {
+        selectedImageFiles = [];
+        // 重置UI
+        $('#uploadPlaceholder').html('<i class="fa fa-cloud-upload fa-4x" style="color: #3498db;"></i><h4>点击或拖拽图片文件到此处</h4><button type="button" class="btn btn-primary" onclick="$(&quot;#imageFileInput&quot;).click();"><i class="fa fa-folder-open"></i> 选择图片</button>');
+
+
+        $('#selectedFilesInfo').hide();
+        $('#uploadProgressSection').hide();
+        $('#uploadResultSection').hide();
+
+        $('#btnStartUpload').hide();
+        $('#btnFinishUpload').hide();
+        $('#btnUploadMore').hide();
+        $('#btnCancelUpload').show();
+
+        // 清空文件输入
+        $('#imageFileInput').val('');
+    }
+
+    // 完成批量上传
+    function finishBatchUpload() {
+        $('#batchUploadModal').modal('hide');
+    }
+
+    // 导出功能
+    function exportData() {
+        try {
+            console.log('开始导出功能');
+            // 获取选中的行
+            var selectedRows = $('#gridTable').ysTable('getSelections');
+            console.log('选中的行:', selectedRows);
+            var ids = '';
+            
+            // 如果有选中的行，收集ID
+            if (selectedRows && selectedRows.length > 0) {
+                ids = selectedRows.map(function(row) { return row.Id; }).join(',');
+                console.log('选中的ID:', ids);
+            }
+
+            // 获取当前搜索条件
+            var searchParams = $('#searchDiv').getWebControls() || {};
+            console.log('搜索参数:', searchParams);
+            
+            // 添加ids到搜索参数
+            if (ids) {
+                searchParams.ids = ids;
+                console.log('添加ID后的搜索参数:', searchParams);
+            }
+
+            // 显示导出提示
+            ys.confirm('确定要导出数据吗？', function() {
+                try {
+                    console.log('用户确认导出');
+                    // 创建表单并提交
+                    var form = $('<form>').attr({
+                        'action': '@Url.Content("~/ToolManage/Products/ExportExcel")',
+                        'method': 'post',
+                        'target': '_blank'
+                    });
+                    
+                    // 添加所有参数
+                    $.each(searchParams, function(key, value) {
+                        form.append($('<input>').attr({
+                            'type': 'hidden',
+                            'name': key,
+                            'value': value
+                        }));
+                    });
+                    
+                    // 添加到页面并提交
+                    $('body').append(form);
+                    form.submit();
+                    form.remove();
+                    console.log('导出表单已提交');
+                } catch (error) {
+                    console.error('导出功能执行失败:', error);
+                    ys.msgError('导出功能执行失败，请联系管理员');
+                }
+            });
+        } catch (error) {
+            console.error('导出功能初始化失败:', error);
+            ys.msgError('导出功能初始化失败，请联系管理员');
+        }
+    }
+
+    </script>

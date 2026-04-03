@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/nav_mixing"
+        android:icon="@drawable/ic_bucket"
+        android:title="拌料"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/nav_feeding"
+        android:icon="@drawable/ic_material"
+        android:title="加料"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/nav_server"
+        android:icon="@drawable/ic_scan"
+        android:title="配置"
+        app:showAsAction="ifRoom" />
+
+</menu>

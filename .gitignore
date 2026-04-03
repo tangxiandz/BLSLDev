@@ -1,0 +1,37 @@
+# Build results
+bin/
+obj/
+build/
+out/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# IDE
+.idea/
+.vscode/
+
+# Dependencies
+node_modules/
+packages/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Android
+*.apk
+*.aar
+*.ap_
+*.aab
+local.properties
+
+# Publish
+PublishProfiles/
+publish/

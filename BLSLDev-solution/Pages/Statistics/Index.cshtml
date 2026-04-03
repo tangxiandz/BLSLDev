@@ -1,0 +1,396 @@
+@page
+@using Microsoft.Extensions.Options
+@inject IOptions<ApiSettings> ApiSettings
+@{  
+    ViewData["Title"] = "查询统计";
+    var apiBaseUrl = ApiSettings.Value.BaseUrl;
+}
+
+<div class="card">
+    <div class="card-header">
+        <h4>查询统计</h4>
+    </div>
+    <div class="card-body">
+        <!-- 搜索框 -->
+        <div class="search-box mb-4">
+            <div class="row">
+                <div class="col-md-3">
+                    <input type="date" class="form-control" id="StartDate">
+                </div>
+                <div class="col-md-3">
+                    <input type="date" class="form-control" id="EndDate">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" id="SearchCode" placeholder="料号">
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary btn-block" onclick="searchRecords()" style="background-color: #1E88E5; border-color: #1E88E5;">
+                        <i class="bi bi-search"></i> 搜索
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 标签页 -->
+        <ul class="nav nav-tabs" id="recordTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="mixing-tab" data-bs-toggle="tab" data-bs-target="#mixing" type="button" role="tab" aria-selected="true">
+                    <i class="bi bi-mine-loaded"></i> 拌料记录
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="feeding-tab" data-bs-toggle="tab" data-bs-target="#feeding" type="button" role="tab" aria-selected="false">
+                    <i class="bi bi-arrow-up-circle"></i> 加料记录
+                </button>
+            </li>
+        </ul>
+
+        <style>
+            .nav-tabs .nav-link.active {
+                background-color: #e3f2fd;
+                border-bottom-color: #e3f2fd;
+            }
+        </style>
+
+        <!-- 标签内容 -->
+        <div class="tab-content mt-4">
+            <!-- 拌料记录 -->
+            <div class="tab-pane fade show active" id="mixing" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>半成品料号</th>
+                                <th>原料物料号</th>
+                                <th>桶号</th>
+                                <th>数量</th>
+                                <th>操作时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mixingTableBody">
+                            @* 拌料记录将通过JavaScript动态加载 *@
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 加料记录 -->
+            <div class="tab-pane fade" id="feeding" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>原料物料号</th>
+                                <th>桶号</th>
+                                <th>验证结果</th>
+                                <th>操作时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="feedingTableBody">
+                            @* 加料记录将通过JavaScript动态加载 *@
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分页 -->
+        <div class="pagination-container mt-4">
+            <nav aria-label="Page navigation">
+                <ul class="pagination" id="pagination"></ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 记录数据
+        let mixingRecords = [];
+        let feedingRecords = [];
+        let currentTab = 'mixing';
+        let currentPage = 1;
+        const pageSize = 10;
+        const apiBaseUrl = '@apiBaseUrl';
+
+        // 初始化页面
+        $(document).ready(function() {
+            loadRecords();
+            
+            // 添加标签切换事件监听器
+            $('#recordTabs').on('shown.bs.tab', function (event) {
+                const tabId = event.target.getAttribute('data-bs-target').substring(1);
+                switchTab(tabId);
+            });
+        });
+
+        // 加载记录
+        function loadRecords() {
+            // 加载拌料记录
+            $.ajax({
+                url: apiBaseUrl + '/api/Mixing/records',
+                method: 'GET',
+                success: function(data) {
+                    mixingRecords = data || [];
+                },
+                error: function(error) {
+                    console.error('Error loading mixing records:', error);
+                    mixingRecords = [];
+                },
+                complete: function() {
+                    // 加载加料记录
+                    $.ajax({
+                        url: apiBaseUrl + '/api/Feeding/records',
+                        method: 'GET',
+                        success: function(data) {
+                            feedingRecords = data || [];
+                        },
+                        error: function(error) {
+                            console.error('Error loading feeding records:', error);
+                            feedingRecords = [];
+                        },
+                        complete: function() {
+                            renderTable();
+                        }
+                    });
+                }
+            });
+        }
+
+        // 切换标签
+        function switchTab(tab) {
+            currentTab = tab;
+            currentPage = 1;
+            renderTable();
+        }
+
+        // 渲染表格
+        function renderTable() {
+            const data = currentTab === 'mixing' ? mixingRecords : feedingRecords;
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const paginatedData = data.slice(start, end);
+
+            // 确保只有当前选中的标签内容是可见的
+            if (currentTab === 'mixing') {
+                $('#mixing').addClass('show active');
+                $('#feeding').removeClass('show active');
+                $('#mixing-tab').addClass('active').attr('aria-selected', 'true');
+                $('#feeding-tab').removeClass('active').attr('aria-selected', 'false');
+            } else {
+                $('#feeding').addClass('show active');
+                $('#mixing').removeClass('show active');
+                $('#feeding-tab').addClass('active').attr('aria-selected', 'true');
+                $('#mixing-tab').removeClass('active').attr('aria-selected', 'false');
+            }
+
+            // 清空所有表格内容
+            $('#mixingTableBody').empty();
+            $('#feedingTableBody').empty();
+
+            // 只渲染当前选中的表格
+            if (currentTab === 'mixing') {
+                renderMixingTable(paginatedData, start);
+            } else {
+                renderFeedingTable(paginatedData, start);
+            }
+
+            renderPagination(data.length);
+        }
+
+        // 渲染拌料表格
+        function renderMixingTable(data, startIndex) {
+            const tbody = $('#mixingTableBody');
+            tbody.empty();
+
+            if (data.length === 0) {
+                tbody.append('<tr><td colspan="6" class="text-center">暂无数据</td></tr>');
+                return;
+            }
+
+            data.forEach((record, index) => {
+                const row = `
+                    <tr>
+                        <td>${startIndex + index + 1}</td>
+                        <td>${record.SemiProductCode}</td>
+                        <td>${record.RawMaterialCode}</td>
+                        <td>${record.BucketCode}</td>
+                        <td>${record.Quantity}</td>
+                        <td>${record.OperationTime}</td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        }
+
+        // 渲染加料表格
+        function renderFeedingTable(data, startIndex) {
+            const tbody = $('#feedingTableBody');
+            tbody.empty();
+
+            if (data.length === 0) {
+                tbody.append('<tr><td colspan="5" class="text-center">暂无数据</td></tr>');
+                return;
+            }
+
+            data.forEach((record, index) => {
+                const resultClass = record.ValidationResult === '验证成功' ? 'text-success' : 'text-danger';
+                const row = `
+                    <tr>
+                        <td>${startIndex + index + 1}</td>
+                        <td>${record.RawMaterialCode}</td>
+                        <td>${record.BucketCode}</td>
+                        <td class="${resultClass}">${record.ValidationResult}</td>
+                        <td>${record.OperationTime}</td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        }
+
+        // 渲染分页
+        function renderPagination(totalCount) {
+            const totalPages = Math.ceil(totalCount / pageSize);
+            const pagination = $('#pagination');
+            pagination.empty();
+
+            // 上一页
+            if (currentPage > 1) {
+                pagination.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(${currentPage - 1})"><i class="bi bi-chevron-left"></i></a></li>`);
+            } else {
+                pagination.append(`<li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a></li>`);
+            }
+
+            // 页码
+            if (totalPages <= 7) {
+                // 总页数小于等于7时，显示所有页码
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i === currentPage) {
+                        pagination.append(`<li class="page-item active"><a class="page-link" href="javascript:void(0)">${i}</a></li>`);
+                    } else {
+                        pagination.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(${i})"></i>${i}</a></li>`);
+                    }
+                }
+            } else {
+                // 总页数大于7时，显示当前页码附近的页码
+                // 显示第一页
+                pagination.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(1)">1</a></li>`);
+                
+                // 显示省略号
+                if (currentPage > 4) {
+                    pagination.append(`<li class="page-item disabled"><a class="page-link" href="#">...</a></li>`);
+                }
+                
+                // 显示当前页码附近的页码
+                const startPage = Math.max(2, currentPage - 2);
+                const endPage = Math.min(totalPages - 1, currentPage + 2);
+                
+                for (let i = startPage; i <= endPage; i++) {
+                    if (i === currentPage) {
+                        pagination.append(`<li class="page-item active"><a class="page-link" href="javascript:void(0)">${i}</a></li>`);
+                    } else {
+                        pagination.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(${i})"></i>${i}</a></li>`);
+                    }
+                }
+                
+                // 显示省略号
+                if (currentPage < totalPages - 3) {
+                    pagination.append(`<li class="page-item disabled"><a class="page-link" href="#">...</a></li>`);
+                }
+                
+                // 显示最后一页
+                pagination.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(${totalPages})"></i>${totalPages}</a></li>`);
+            }
+
+            // 下一页
+            if (currentPage < totalPages) {
+                pagination.append(`<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(${currentPage + 1})"><i class="bi bi-chevron-right"></i></a></li>`);
+            } else {
+                pagination.append(`<li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>`);
+            }
+        }
+
+        // 切换页码
+        function changePage(page) {
+            currentPage = page;
+            renderTable();
+        }
+
+        // 搜索记录
+        function searchRecords() {
+            const startDate = $('#StartDate').val();
+            const endDate = $('#EndDate').val();
+            const searchCode = $('#SearchCode').val().trim().toLowerCase();
+
+            // 加载所有记录
+            $.ajax({
+                url: apiBaseUrl + '/api/Mixing/records',
+                method: 'GET',
+                success: function(data) {
+                    // 过滤拌料记录
+                    mixingRecords = (data || []).filter(record => {
+                        // 日期过滤
+                        if (startDate && new Date(record.OperationTime) < new Date(startDate)) {
+                            return false;
+                        }
+                        if (endDate) {
+                            const endDateObj = new Date(endDate);
+                            endDateObj.setHours(23, 59, 59, 999);
+                            if (new Date(record.OperationTime) > endDateObj) {
+                                return false;
+                            }
+                        }
+                        // 料号过滤
+                        if (searchCode && !record.SemiProductCode.toLowerCase().includes(searchCode) && 
+                            !record.RawMaterialCode.toLowerCase().includes(searchCode)) {
+                            return false;
+                        }
+                        return true;
+                    });
+                },
+                error: function(error) {
+                    console.error('Error loading mixing records:', error);
+                    mixingRecords = [];
+                },
+                complete: function() {
+                    // 加载加料记录
+                    $.ajax({
+                        url: apiBaseUrl + '/api/Feeding/records',
+                        method: 'GET',
+                        success: function(data) {
+                            // 过滤加料记录
+                            feedingRecords = (data || []).filter(record => {
+                                // 日期过滤
+                                if (startDate && new Date(record.OperationTime) < new Date(startDate)) {
+                                    return false;
+                                }
+                                if (endDate) {
+                                    const endDateObj = new Date(endDate);
+                                    endDateObj.setHours(23, 59, 59, 999);
+                                    if (new Date(record.OperationTime) > endDateObj) {
+                                        return false;
+                                    }
+                                }
+                                // 料号过滤
+                                if (searchCode && !record.RawMaterialCode.toLowerCase().includes(searchCode)) {
+                                    return false;
+                                }
+                                return true;
+                            });
+                        },
+                        error: function(error) {
+                            console.error('Error loading feeding records:', error);
+                            feedingRecords = [];
+                        },
+                        complete: function() {
+                            currentPage = 1;
+                            renderTable();
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+}
